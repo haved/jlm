@@ -248,7 +248,8 @@ JlmOptCommandLineOptions::ToCommandLineArgument(OutputFormat outputFormat)
   static std::unordered_map<OutputFormat, const char*> map(
     {
       {OutputFormat::Llvm, "llvm"},
-      {OutputFormat::Xml,  "xml"}
+      {OutputFormat::Xml,  "xml"},
+      {OutputFormat::Html, "html"}
     });
 
   if (map.find(outputFormat) != map.end())
@@ -872,6 +873,7 @@ JlmOptCommandLineParser::ParseCommandLineArguments(int argc, char **argv)
 
   auto llvmOutputFormat = JlmOptCommandLineOptions::OutputFormat::Llvm;
   auto xmlOutputFormat = JlmOptCommandLineOptions::OutputFormat::Xml;
+  auto htmlOutputFormat = JlmOptCommandLineOptions::OutputFormat::Html;
 
   cl::opt<JlmOptCommandLineOptions::OutputFormat> outputFormat(
     cl::values(
@@ -882,7 +884,11 @@ JlmOptCommandLineParser::ParseCommandLineArguments(int argc, char **argv)
       ::clEnumValN(
         xmlOutputFormat,
         JlmOptCommandLineOptions::ToCommandLineArgument(xmlOutputFormat),
-        "Output XML")),
+        "Output XML"),
+      ::clEnumValN(
+        htmlOutputFormat,
+        JlmOptCommandLineOptions::ToCommandLineArgument(htmlOutputFormat),
+        "Output HTML")),
     cl::init(llvmOutputFormat),
     cl::desc("Select output format"));
 

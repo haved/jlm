@@ -42,7 +42,8 @@ class JlmOptCommandLineOptions final : public CommandLineOptions {
 public:
   enum class OutputFormat {
     Llvm,
-    Xml
+    Xml,
+    Html
   };
 
   enum class OptimizationId

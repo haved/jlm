@@ -13,6 +13,7 @@
 #include <jlm/tooling/Command.hpp>
 #include <jlm/tooling/CommandPaths.hpp>
 #include <jlm/rvsdg/view.hpp>
+#include "jlm/rvsdg/rvsdg2html.hpp"
 
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
@@ -22,6 +23,7 @@
 
 #include <sys/stat.h>
 
+#include <cstdio>
 #include <filesystem>
 #include <unordered_map>
 
@@ -367,6 +369,20 @@ JlmOptCommand::PrintRvsdgModule(
       fclose(fd);
   };
 
+  auto printAsHtml = [](
+          const llvm::RvsdgModule & rvsdgModule,
+          const util::filepath & outputFile,
+          util::StatisticsCollector&)
+  {
+    auto fd = outputFile == "" ? stdout : fopen(outputFile.to_str().c_str(), "w");
+
+    auto html = jlm::rvsdg::ToHtml(rvsdgModule.Rvsdg().root());
+    fputs(html.c_str(), fd);
+
+    if (fd != stdout)
+      fclose(fd);
+  };
+
   auto printAsLlvm = [](
     const llvm::RvsdgModule & rvsdgModule,
     const util::filepath & outputFile,
@@ -393,6 +409,7 @@ JlmOptCommand::PrintRvsdgModule(
   > printers(
     {
       {tooling::JlmOptCommandLineOptions::OutputFormat::Xml,  printAsXml},
+      {tooling::JlmOptCommandLineOptions::OutputFormat::Html, printAsHtml},
       {tooling::JlmOptCommandLineOptions::OutputFormat::Llvm, printAsLlvm}
     });
 
