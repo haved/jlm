@@ -7,3 +7,4 @@ check.log
 jlm/tooling/CommandPaths.hpp
 .idea
 docs/html
+cmake-build-debug/

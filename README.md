@@ -20,6 +20,16 @@ make all
 Please ensure that `LLVMCONFIG` is set to the correct version of `llvm-config` as stated in
 dependencies.
 
+### CMake bootstrap
+To aid IDE support, there is also a set of CMakeLists.txt files.
+We still rely on the Makefiles to generate one source-file, and to run the test binaries once per test.
+```
+export LLVMCONFIG=/path/to/llvm-config
+make jlm/tooling/CommandPaths.hpp
+cmake -B cmake-build-debug -DCMAKE_BUILD_TYPE=Debug -DLLVMCONFIG=$LLVMCONFIG
+cmake --build cmake-build-debug
+```
+
 ## Documentation
 Invoke the following command to generate the doxygen documentation:
 ```
@@ -61,7 +71,7 @@ make circt-build
 ```
 
 This will build llvm, mlir, and circt for you and install it in jlm-eval-suite/circt/local. The build of llvm requires at least 16 GiB of main memory (RAM), as well as ninja and cmake to be installed.
-A complete list of dependencies can be found in the [getting started instrutions for LLVM/MLIR](https://mlir.llvm.org/getting_started/).
+A complete list of dependencies can be found in the [getting started instructions for LLVM/MLIR](https://mlir.llvm.org/getting_started/).
 
 Not that the jlm-eval-suite has the jlm compiler as a submodule. To compile jlm with the newly installed CIRCT setup (assuming you are still in jlm-eval-suite):
 ```
