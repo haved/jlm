@@ -4,7 +4,7 @@
 #define JLM_RVSDG2HTML_HPP
 
 #include <string>
-#include <jlm/rvsdg/region.hpp>
+#include "jlm/rvsdg/region.hpp"
 
 namespace jlm::rvsdg {
 
