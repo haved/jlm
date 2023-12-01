@@ -29,11 +29,23 @@ static const char *html_prologue =
   "<link rel=\"stylesheet\" href=\"style.css\">\n"
   "</head>\n"
   "<body>\n"
-  "<main>\n";
+  "<main>\n"
+  "<rvsdg-region>\n"
+  "<rvsdg-node kind=\"omega\">\n"
+  "<rvsdg-regions>\n";
 
 static const char *html_epilogue =
+  "</rvsdg-regions>\n"
+  "</rvsdg-node>\n"
+  "</rvsdg-region>\n"
   "</main>\n"
-  "<script src=\"script.js\"></script>\n"
+  "<script src=\"util.js\"></script>\n"
+  "<script src=\"draggable.js\"></script>\n"
+  "<script src=\"node.js\"></script>\n"
+  "<script src=\"region.js\"></script>\n"
+  "<script src=\"edge.js\"></script>\n"
+  "<script src=\"edge-handle.js\"></script>\n"
+  "<script src=\"controls.js\"></script>\n"
   "</body>\n"
   "</html>";
 

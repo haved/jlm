@@ -21,7 +21,6 @@ LIBRVSDG_SRC = \
 	jlm/rvsdg/type.cpp \
 	jlm/rvsdg/unary.cpp \
 	jlm/rvsdg/view.cpp \
-	jlm/rvsdg/rvsdg2html.cpp \
 	\
 	jlm/rvsdg/bitstring/arithmetic.cpp \
 	jlm/rvsdg/bitstring/bitoperation-classes.cpp \

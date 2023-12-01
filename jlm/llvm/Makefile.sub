@@ -5,6 +5,7 @@ LIBLLVM_SRC = \
     jlm/llvm/backend/jlm2llvm/instruction.cpp \
     jlm/llvm/backend/jlm2llvm/jlm2llvm.cpp \
     jlm/llvm/backend/jlm2llvm/type.cpp \
+    jlm/llvm/backend/rvsdg2html/rvsdg2html.cpp \
     jlm/llvm/backend/rvsdg2jlm/rvsdg2jlm.cpp \
     \
     jlm/llvm/frontend/ControlFlowRestructuring.cpp \
