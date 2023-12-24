@@ -18,65 +18,65 @@ namespace jlm::llvm
 /** \brief Call operation class
  *
  */
-class CallOperation final : public jlm::rvsdg::simple_op {
+class CallOperation final : public jlm::rvsdg::simple_op
+{
 public:
-	~CallOperation() override;
+  ~CallOperation() override;
 
-  explicit
-  CallOperation(const FunctionType & functionType)
-    : simple_op(create_srcports(functionType), create_dstports(functionType))
-    , FunctionType_(functionType)
+  explicit CallOperation(const FunctionType & functionType)
+      : simple_op(create_srcports(functionType), create_dstports(functionType)),
+        FunctionType_(functionType)
   {}
 
-	bool
- 	operator==(const operation & other) const noexcept override;
+  bool
+  operator==(const operation & other) const noexcept override;
 
-	[[nodiscard]] std::string
-	debug_string() const override;
+  [[nodiscard]] std::string
+  debug_string() const override;
 
-	[[nodiscard]] const FunctionType &
-	GetFunctionType() const noexcept
-	{
+  [[nodiscard]] const FunctionType &
+  GetFunctionType() const noexcept
+  {
     return FunctionType_;
-	}
+  }
 
-	[[nodiscard]] std::unique_ptr<jlm::rvsdg::operation>
-	copy() const override;
+  [[nodiscard]] std::unique_ptr<jlm::rvsdg::operation>
+  copy() const override;
 
-	static std::unique_ptr<tac>
-	create(
-		const variable * function,
-    const FunctionType & functionType,
-		const std::vector<const variable*> & arguments)
-	{
+  static std::unique_ptr<tac>
+  create(
+      const variable * function,
+      const FunctionType & functionType,
+      const std::vector<const variable *> & arguments)
+  {
     CheckFunctionInputType(function->type());
 
-		CallOperation op(functionType);
-		std::vector<const variable*> operands({function});
-		operands.insert(operands.end(), arguments.begin(), arguments.end());
-		return tac::create(op, operands);
-	}
+    CallOperation op(functionType);
+    std::vector<const variable *> operands({ function });
+    operands.insert(operands.end(), arguments.begin(), arguments.end());
+    return tac::create(op, operands);
+  }
 
 private:
-	static inline std::vector<jlm::rvsdg::port>
-	create_srcports(const FunctionType & functionType)
-	{
-		std::vector<jlm::rvsdg::port> ports(1, {PointerType()});
+  static inline std::vector<jlm::rvsdg::port>
+  create_srcports(const FunctionType & functionType)
+  {
+    std::vector<jlm::rvsdg::port> ports(1, { PointerType() });
     for (auto & argumentType : functionType.Arguments())
-			ports.emplace_back(argumentType);
+      ports.emplace_back(argumentType);
 
-		return ports;
-	}
+    return ports;
+  }
 
-	static inline std::vector<jlm::rvsdg::port>
-	create_dstports(const FunctionType & functionType)
-	{
-		std::vector<jlm::rvsdg::port> ports;
+  static inline std::vector<jlm::rvsdg::port>
+  create_dstports(const FunctionType & functionType)
+  {
+    std::vector<jlm::rvsdg::port> ports;
     for (auto & resultType : functionType.Results())
-			ports.emplace_back(resultType);
+      ports.emplace_back(resultType);
 
-		return ports;
-	}
+    return ports;
+  }
 
   static void
   CheckFunctionInputType(const jlm::rvsdg::type & type)
@@ -92,16 +92,20 @@ private:
  *
  * The CallTypeClassifier class provides information about the call type of a call node.
  */
-class CallTypeClassifier final {
+class CallTypeClassifier final
+{
 public:
-  enum class CallType {
+  enum class CallType
+  {
     /**
-     * A call to a statically visible function within the module that is not part of a mutual recursive call chain.
+     * A call to a statically visible function within the module that is not part of a mutual
+     * recursive call chain.
      */
     NonRecursiveDirectCall,
 
     /**
-     * A call to a statically visible function within the module that is part of a mutual recursive call chain.
+     * A call to a statically visible function within the module that is part of a mutual recursive
+     * call chain.
      */
     RecursiveDirectCall,
 
@@ -116,11 +120,9 @@ public:
     IndirectCall
   };
 
-  CallTypeClassifier(
-    CallType callType,
-    jlm::rvsdg::output & output)
-  : CallType_(callType)
-  , Output_(&output)
+  CallTypeClassifier(CallType callType, jlm::rvsdg::output & output)
+      : CallType_(callType),
+        Output_(&output)
   {}
 
   /** \brief Return call type.
@@ -174,7 +176,8 @@ public:
 
   /** \brief Returns the called function.
    *
-   * GetLambdaOutput() only returns a valid result if the call node is a (non-)recursive direct call.
+   * GetLambdaOutput() only returns a valid result if the call node is a (non-)recursive direct
+   * call.
    *
    * @return The called function.
    */
@@ -193,7 +196,8 @@ public:
      * would be better if we did not use the index for retrieving the result, but instead
      * explicitly encoded it in an phi_argument.
      */
-    return *jlm::util::AssertedCast<lambda::output>(argument->region()->result(argument->index())->origin());
+    return *jlm::util::AssertedCast<lambda::output>(
+        argument->region()->result(argument->index())->origin());
   }
 
   /** \brief Returns the imported function.
@@ -257,46 +261,68 @@ private:
 /** \brief Call node
  *
  */
-class CallNode final : public jlm::rvsdg::simple_node {
+class CallNode final : public jlm::rvsdg::simple_node
+{
 private:
   CallNode(
-    jlm::rvsdg::region & region,
-    const CallOperation & operation,
-    const std::vector<jlm::rvsdg::output*> & operands)
-    : simple_node(&region, operation, operands)
+      jlm::rvsdg::region & region,
+      const CallOperation & operation,
+      const std::vector<jlm::rvsdg::output *> & operands)
+      : simple_node(&region, operation, operands)
   {}
 
 public:
-  [[nodiscard]] const CallOperation&
+  [[nodiscard]] const CallOperation &
   GetOperation() const noexcept
   {
     return *jlm::util::AssertedCast<const CallOperation>(&operation());
   }
 
+  /**
+   * @return The number of arguments to the call.
+   *
+   * \note This is equivalent to ninputs() - 1 as NumArguments() ignores the function input.
+   */
   [[nodiscard]] size_t
   NumArguments() const noexcept
   {
-    return ninputs()-1;
+    return ninputs() - 1;
   }
 
+  /**
+   * @param n The index of the function argument.
+   * @return The input for the given index \p n.
+   */
   [[nodiscard]] jlm::rvsdg::input *
   Argument(size_t n) const
   {
-    return input(n);
+    JLM_ASSERT(n < NumArguments());
+    return input(n + 1);
   }
 
+  /**
+   * @return The number of results from the call.
+   */
   [[nodiscard]] size_t
   NumResults() const noexcept
   {
     return noutputs();
   }
 
+  /**
+   * @param n The index of the function result.
+   * @return The output for the given index \p n.
+   */
   [[nodiscard]] jlm::rvsdg::output *
   Result(size_t n) const noexcept
   {
+    JLM_ASSERT(n < NumResults());
     return output(n);
   }
 
+  /**
+   * @return The call node's function input.
+   */
   [[nodiscard]] jlm::rvsdg::input *
   GetFunctionInput() const noexcept
   {
@@ -305,98 +331,110 @@ public:
     return functionInput;
   }
 
+  /**
+   * @return The call node's input/output state input.
+   */
   [[nodiscard]] jlm::rvsdg::input *
   GetIoStateInput() const noexcept
   {
-    auto iOState = input(ninputs()-3);
+    auto iOState = input(ninputs() - 3);
     JLM_ASSERT(is<iostatetype>(iOState->type()));
     return iOState;
   }
 
+  /**
+   * @return The call node's memory state input.
+   */
   [[nodiscard]] jlm::rvsdg::input *
   GetMemoryStateInput() const noexcept
   {
-    auto memoryState = input(ninputs()-2);
+    auto memoryState = input(ninputs() - 2);
     JLM_ASSERT(is<MemoryStateType>(memoryState->type()));
     return memoryState;
   }
 
+  /**
+   * @return The call node's loop state input.
+   */
   [[nodiscard]] jlm::rvsdg::input *
   GetLoopStateInput() const noexcept
   {
-    auto loopState = input(ninputs()-1);
+    auto loopState = input(ninputs() - 1);
     JLM_ASSERT(is<loopstatetype>(loopState->type()));
     return loopState;
   }
 
+  /**
+   * @return The call node's input/output state output.
+   */
   [[nodiscard]] jlm::rvsdg::output *
   GetIoStateOutput() const noexcept
   {
-    auto iOState = output(noutputs()-3);
+    auto iOState = output(noutputs() - 3);
     JLM_ASSERT(is<iostatetype>(iOState->type()));
     return iOState;
   }
 
+  /**
+   * @return The call node's memory state output.
+   */
   [[nodiscard]] jlm::rvsdg::output *
   GetMemoryStateOutput() const noexcept
   {
-    auto memoryState = output(noutputs()-2);
+    auto memoryState = output(noutputs() - 2);
     JLM_ASSERT(is<MemoryStateType>(memoryState->type()));
     return memoryState;
   }
 
+  /**
+   * @return The call node's loop state output.
+   */
   [[nodiscard]] jlm::rvsdg::output *
   GetLoopStateOutput() const noexcept
   {
-    auto loopState = output(noutputs()-1);
+    auto loopState = output(noutputs() - 1);
     JLM_ASSERT(is<loopstatetype>(loopState->type()));
     return loopState;
   }
 
-  static std::vector<jlm::rvsdg::output*>
+  static std::vector<jlm::rvsdg::output *>
   Create(
-    jlm::rvsdg::output * function,
-    const FunctionType & functionType,
-    const std::vector<jlm::rvsdg::output*> & arguments)
+      jlm::rvsdg::output * function,
+      const FunctionType & functionType,
+      const std::vector<jlm::rvsdg::output *> & arguments)
   {
     CheckFunctionInputType(function->type());
     CheckFunctionType(functionType);
 
     CallOperation callOperation(functionType);
-    std::vector<jlm::rvsdg::output*> operands({function});
+    std::vector<jlm::rvsdg::output *> operands({ function });
     operands.insert(operands.end(), arguments.begin(), arguments.end());
 
-    return jlm::rvsdg::outputs(new CallNode(
-      *function->region(),
-      callOperation,
-      operands));
+    return jlm::rvsdg::outputs(new CallNode(*function->region(), callOperation, operands));
   }
 
-  static std::vector<jlm::rvsdg::output*>
+  static std::vector<jlm::rvsdg::output *>
   Create(
-    jlm::rvsdg::region & region,
-    const CallOperation & callOperation,
-    const std::vector<jlm::rvsdg::output*> & operands)
+      jlm::rvsdg::region & region,
+      const CallOperation & callOperation,
+      const std::vector<jlm::rvsdg::output *> & operands)
   {
     CheckFunctionType(callOperation.GetFunctionType());
 
-    return jlm::rvsdg::outputs(new CallNode(
-      region,
-      callOperation,
-      operands));
+    return jlm::rvsdg::outputs(new CallNode(region, callOperation, operands));
   }
 
   /**
-  * \brief Traces function input of call node
-  *
-  * Traces the function input of a call node upwards, trying to
-  * find the corresponding lambda output. The function can handle
-  * invariant gamma exit variables and invariant theta loop variables.
-  *
-  * \param callNode A call node.
-  *
-  * \return The traced output.
-  */
+   * \brief Traces function input of call node
+   *
+   * Traces the function input of a call node upwards, trying to
+   * find the corresponding lambda output. The function can handle
+   * invariant gamma exit variables and invariant theta loop variables.
+   *
+   * \param callNode A call node.
+   *
+   * \return The traced output.
+   */
   static jlm::rvsdg::output *
   TraceFunctionInput(const CallNode & callNode);
 
@@ -426,9 +464,9 @@ private:
       if (functionType.NumArguments() < 3)
         throw jlm::util::error("Expected at least three argument types.");
 
-      auto loopStateArgumentIndex = functionType.NumArguments()-1;
-      auto memoryStateArgumentIndex = functionType.NumArguments()-2;
-      auto iOStateArgumentIndex = functionType.NumArguments()-3;
+      auto loopStateArgumentIndex = functionType.NumArguments() - 1;
+      auto memoryStateArgumentIndex = functionType.NumArguments() - 2;
+      auto iOStateArgumentIndex = functionType.NumArguments() - 3;
 
       if (!is<loopstatetype>(functionType.ArgumentType(loopStateArgumentIndex)))
         throw jlm::util::error("Expected loop state type.");
@@ -445,9 +483,9 @@ private:
       if (functionType.NumResults() < 3)
         throw jlm::util::error("Expected at least three result types.");
 
-      auto loopStateResultIndex = functionType.NumResults()-1;
-      auto memoryStateResultIndex = functionType.NumResults()-2;
-      auto iOStateResultIndex = functionType.NumResults()-3;
+      auto loopStateResultIndex = functionType.NumResults() - 1;
+      auto memoryStateResultIndex = functionType.NumResults() - 2;
+      auto iOStateResultIndex = functionType.NumResults() - 3;
 
       if (!is<loopstatetype>(functionType.ResultType(loopStateResultIndex)))
         throw jlm::util::error("Expected loop state type.");
