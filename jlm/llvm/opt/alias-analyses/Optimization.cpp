@@ -11,6 +11,8 @@
 #include <jlm/llvm/opt/alias-analyses/RegionAwareMemoryNodeProvider.hpp>
 #include <jlm/llvm/opt/alias-analyses/Steensgaard.hpp>
 
+#include <jlm/rvsdg/view.hpp>
+
 namespace jlm::llvm::aa
 {
 
@@ -26,6 +28,9 @@ AliasAnalysisStateEncoder<AliasAnalysisPass, MemoryNodeProviderPass>::run(
 {
   AliasAnalysisPass aaPass;
   auto pointsToGraph = aaPass.Analyze(rvsdgModule, statisticsCollector);
+  std::unordered_map<const jlm::rvsdg::output *, std::string> map;
+  std::cout << jlm::rvsdg::view(rvsdgModule.Rvsdg().root(), map) << std::endl;
+  std::cout << PointsToGraph::ToDot(*pointsToGraph, map) << std::endl;
   auto provisioning =
       MemoryNodeProviderPass::Create(rvsdgModule, *pointsToGraph, statisticsCollector);
 
