@@ -70,8 +70,10 @@ Andersen::Configuration::GetAllConfigurations()
   {
     config.EnablePreferImplicitPointees(false);
     configs.push_back(config);
+#ifndef ANDERSEN_NO_FLAGS
     config.EnablePreferImplicitPointees(true);
     configs.push_back(config);
+#endif
   };
   auto PickDifferencePropagation = [&](Configuration config)
   {
@@ -367,10 +369,14 @@ public:
   {
     size_t numEscapedMemoryObjects = 0;
     size_t numUnificationRoots = 0;
+#ifndef ANDERSEN_NO_FLAGS
     size_t numPointsToExternalFlags = 0;
     size_t numPointeesEscapingFlags = 0;
+#endif
     size_t numExplicitPointees = 0;
+#ifndef ANDERSEN_NO_FLAGS
     size_t numDoubleUpPointees = 0;
+#endif
 
     for (PointerObjectIndex i = 0; i < set.NumPointerObjects(); i++)
     {
@@ -381,26 +387,34 @@ public:
         continue;
 
       numUnificationRoots++;
+#ifndef ANDERSEN_NO_FLAGS
       if (set.IsPointingToExternal(i))
         numPointsToExternalFlags++;
       if (set.HasPointeesEscaping(i))
         numPointeesEscapingFlags++;
+#endif
 
       const auto & pointees = set.GetPointsToSet(i);
       numExplicitPointees += pointees.Size();
 
+#ifndef ANDERSEN_NO_FLAGS
       // If the PointsToExternal flag is set, any explicit pointee that has escaped is doubled up
       if (set.IsPointingToExternal(i))
         for (auto pointee : pointees.Items())
           if (set.HasEscaped(pointee))
             numDoubleUpPointees++;
+#endif
     }
     AddMeasurement(NumEscapedMemoryObjects_, numEscapedMemoryObjects);
     AddMeasurement(NumUnificationRoots_, numUnificationRoots);
+#ifndef ANDERSEN_NO_FLAGS
     AddMeasurement(NumPointsToExternalFlags_, numPointsToExternalFlags);
     AddMeasurement(NumPointeesEscapingFlags_, numPointeesEscapingFlags);
+#endif
     AddMeasurement(NumExplicitPointees_, numExplicitPointees);
+#ifndef ANDERSEN_NO_FLAGS
     AddMeasurement(NumDoubledUpPointees_, numDoubleUpPointees);
+#endif
   }
 
   void
@@ -1258,12 +1272,16 @@ Andersen::ConstructPointsToGraphFromPointerObjectSet(
   // This vector has the same indexing as the nodes themselves, register nodes become nullptr.
   std::vector<PointsToGraph::MemoryNode *> memoryNodes(set.NumPointerObjects());
 
+#ifndef ANDERSEN_NO_FLAGS
   // Nodes that should point to external in the final graph.
   // They also get explicit edges connecting them to all escaped memory nodes.
   std::vector<PointsToGraph::Node *> pointsToExternal;
 
   // A list of all memory nodes that have been marked as escaped
   std::vector<PointsToGraph::MemoryNode *> escapedMemoryNodes;
+#endif
+
+  memoryNodes[set.GetExternalObject()] = &pointsToGraph->GetExternalMemoryNode();
 
   // First all memory nodes are created
   for (auto [allocaNode, pointerObjectIndex] : set.GetAllocaMap())
@@ -1300,9 +1318,11 @@ Andersen::ConstructPointsToGraphFromPointerObjectSet(
     if (!set.ShouldTrackPointees(index))
       return;
 
+#ifndef ANDERSEN_NO_FLAGS
     // Add all PointsToGraph nodes who should point to external to the list
     if (set.IsPointingToExternal(index))
       pointsToExternal.push_back(&node);
+#endif
 
     for (const auto targetIdx : set.GetPointsToSet(index).Items())
     {
@@ -1333,6 +1353,11 @@ Andersen::ConstructPointsToGraphFromPointerObjectSet(
   // Also checks and informs the PointsToGraph which memory nodes are marked as escaping the module
   for (PointerObjectIndex idx = 0; idx < set.NumPointerObjects(); idx++)
   {
+#ifdef ANDERSEN_NO_FLAGS
+    // Do not add out-edges from the external node
+    if (idx == set.GetExternalObject())
+      continue;
+#endif
     if (memoryNodes[idx] == nullptr)
       continue; // Skip all nodes that are not MemoryNodes
 
@@ -1341,10 +1366,13 @@ Andersen::ConstructPointsToGraphFromPointerObjectSet(
     if (set.HasEscaped(idx))
     {
       memoryNodes[idx]->MarkAsModuleEscaping();
+#ifndef ANDERSEN_NO_FLAGS
       escapedMemoryNodes.push_back(memoryNodes[idx]);
+#endif
     }
   }
 
+#ifndef ANDERSEN_NO_FLAGS
   // Finally make all nodes marked as pointing to external, point to all escaped memory nodes
   statistics.StartExternalToAllEscapedStatistics();
   for (const auto source : pointsToExternal)
@@ -1357,6 +1385,7 @@ Andersen::ConstructPointsToGraphFromPointerObjectSet(
     source->AddEdge(pointsToGraph->GetExternalMemoryNode());
   }
   statistics.StopExternalToAllEscapedStatistics();
+#endif
 
   statistics.StopPointsToGraphConstructionStatistics(*pointsToGraph);
   return pointsToGraph;

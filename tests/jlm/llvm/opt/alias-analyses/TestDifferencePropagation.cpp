@@ -72,6 +72,7 @@ TestTracksDifferences()
   // Assert that only a1 and a2 are new to r0, as it has already marked a0 and a3 as seen
   assert(differencePropagation.GetNewPointees(r0) == (util::HashSet<PointerObjectIndex>{ a1, a2 }));
 
+#ifndef ANDERSEN_NO_FLAGS
   // Act 6 - give nodes r0 and r1 flags
   set.MarkAsPointeesEscaping(r0);
   set.MarkAsPointingToExternal(r1);
@@ -89,6 +90,7 @@ TestTracksDifferences()
   // Assert that the flags are no longer new
   assert(!differencePropagation.PointeesEscapeIsNew(r0));
   assert(!differencePropagation.PointsToExternalIsNew(r1));
+#endif
 
   // Act 6 - unify 0 and 1
   // After unification, any pointee or flag that is new to either node becomes new to the union
@@ -102,9 +104,11 @@ TestTracksDifferences()
   util::HashSet<PointerObjectIndex> subset{ a0, a2, a3 };
   assert(subset.IsSubsetOf(differencePropagation.GetNewPointees(root)));
 
+#ifndef ANDERSEN_NO_FLAGS
   // Neither flag has been seen by both nodes, so they are both new to the unification
   assert(differencePropagation.PointeesEscapeIsNew(root));
   assert(differencePropagation.PointsToExternalIsNew(root));
+#endif
 
   return 0;
 }

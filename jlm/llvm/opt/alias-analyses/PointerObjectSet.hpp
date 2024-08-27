@@ -37,6 +37,11 @@ enum class PointerObjectKind : uint8_t
   // Represents functions and global variables imported from other modules.
   ImportMemoryObject,
 
+#ifdef ANDERSEN_NO_FLAGS
+  // A special object representing all external memory, of which only one exists
+  ExternalObject,
+#endif
+
   COUNT
 };
 
@@ -59,6 +64,7 @@ class PointerObjectSet final
     // The kind of pointer object
     PointerObjectKind Kind : util::BitWidthOfEnum(PointerObjectKind::COUNT);
 
+#ifndef ANDERSEN_NO_FLAGS
     // This memory object's address is known outside the module.
     // Can only be true on memory objects.
     uint8_t HasEscaped : 1;
@@ -72,21 +78,27 @@ class PointerObjectSet final
     // The unification root is the source of truth for this flag!
     // This flag is implied by HasEscaped
     uint8_t PointsToExternal : 1;
+#endif
 
     explicit PointerObject(PointerObjectKind kind)
-        : Kind(kind),
+        : Kind(kind)
+#ifndef ANDERSEN_NO_FLAGS
+          ,
           HasEscaped(0),
           PointeesEscaping(0),
           PointsToExternal(0)
+#endif
     {
       JLM_ASSERT(kind != PointerObjectKind::COUNT);
 
+#ifndef ANDERSEN_NO_FLAGS
       if (!ShouldTrackPointees())
       {
         // No attempt is made at tracking pointees, so use these flags to inform others
         PointeesEscaping = 1;
         PointsToExternal = 1;
       }
+#endif
     }
 
     /**
@@ -99,7 +111,11 @@ class PointerObjectSet final
     [[nodiscard]] bool
     CanTrackPointeesImplicitly() const noexcept
     {
+#ifdef ANDERSEN_NO_FLAGS
+      JLM_UNREACHABLE("ANDERSEN_NO_FLAGS");
+#else
       return PointsToExternal && PointeesEscaping;
+#endif
     }
 
     /**
@@ -157,6 +173,11 @@ class PointerObjectSet final
 
   std::unordered_map<const GraphImport *, PointerObjectIndex> ImportMap_;
 
+#ifdef ANDERSEN_NO_FLAGS
+  // The first pointer object index is reserved for the external object
+  static constexpr PointerObjectIndex ExternalPointerObject_ = 0;
+#endif
+
   /**
    * Internal helper function for adding PointerObjects, use the Create* methods instead
    */
@@ -175,6 +196,8 @@ class PointerObjectSet final
       NewPointeeFunctor & onNewPointee);
 
 public:
+  PointerObjectSet();
+
   [[nodiscard]] size_t
   NumPointerObjects() const noexcept;
 
@@ -292,6 +315,14 @@ public:
   const std::unordered_map<const GraphImport *, PointerObjectIndex> &
   GetImportMap() const noexcept;
 
+#ifdef ANDERSEN_NO_FLAGS
+  PointerObjectIndex
+  GetExternalObject() const noexcept
+  {
+    return ExternalPointerObject_;
+  }
+#endif
+
   /**
    * @return the kind of the PointerObject with the given \p index
    */
@@ -325,6 +356,7 @@ public:
   bool
   MarkAsEscaped(PointerObjectIndex index);
 
+#ifndef ANDERSEN_NO_FLAGS
   /**
    * @return true if the PointerObject with the given \p index makes all its pointees escape
    */
@@ -360,6 +392,7 @@ public:
    */
   [[nodiscard]] bool
   CanTrackPointeesImplicitly(PointerObjectIndex index) const noexcept;
+#endif
 
   /**
    * @return the root in the unification the PointerObject with the given \p index belongs to.
@@ -716,6 +749,7 @@ public:
   ApplyDirectly(PointerObjectSet & set);
 };
 
+#ifndef ANDERSEN_NO_FLAGS
 /**
  * Helper class representing the global constraint:
  *   For all PointerObjects x marked as PointeesEscaping, all pointees in P(x) are escaping
@@ -733,6 +767,7 @@ public:
   static bool
   PropagateEscapedFlagsDirectly(PointerObjectSet & set);
 };
+#endif
 
 /**
  * Helper class representing the global constraint:
@@ -879,7 +914,12 @@ public:
       : Set_(set),
         Constraints_(),
         ConstraintSetFrozen_(false)
-  {}
+  {
+#ifdef ANDERSEN_NO_FLAGS
+    AddConstraint(StoreConstraint(set.GetExternalObject(), set.GetExternalObject()));
+    AddConstraint(LoadConstraint(set.GetExternalObject(), set.GetExternalObject()));
+#endif
+  }
 
   PointerObjectConstraintSet(const PointerObjectConstraintSet & other) = delete;
 

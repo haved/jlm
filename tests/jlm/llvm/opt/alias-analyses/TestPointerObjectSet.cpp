@@ -18,6 +18,7 @@ StringContains(std::string_view haystack, std::string_view needle)
   return haystack.find(needle) != std::string::npos;
 }
 
+#ifndef ANDERSEN_NO_FLAGS
 // Test the flag functions on the PointerObject class
 static void
 TestFlagFunctions()
@@ -72,6 +73,7 @@ TestFlagFunctions()
   auto lambdaPO = set.CreateFunctionMemoryObject(rvsdg.GetLambdaNode());
   assert(!set.ShouldTrackPointees(lambdaPO));
 }
+#endif
 
 // Test creating pointer objects for each type of memory node
 static void
@@ -95,7 +97,11 @@ TestCreatePointerObjects()
   const auto lambda0 = set.CreateFunctionMemoryObject(rvsdg.GetLambdaNode());
   const auto import0 = set.CreateImportMemoryObject(rvsdg.GetImportOutput());
 
+#ifdef ANDERSEN_NO_FLAGS
+  assert(set.NumPointerObjects() == 8);
+#else
   assert(set.NumPointerObjects() == 7);
+#endif
   assert(set.NumPointerObjectsOfKind(jlm::llvm::aa::PointerObjectKind::Register) == 2);
 
   assert(set.GetPointerObjectKind(register0) == PointerObjectKind::Register);
@@ -106,6 +112,7 @@ TestCreatePointerObjects()
   assert(set.GetPointerObjectKind(lambda0) == PointerObjectKind::FunctionMemoryObject);
   assert(set.GetPointerObjectKind(import0) == PointerObjectKind::ImportMemoryObject);
 
+#ifndef ANDERSEN_NO_FLAGS
   // Most pointer objects don't start out as escaped
   assert(!set.HasEscaped(dummy0) && !set.IsPointingToExternal(dummy0));
   assert(!set.HasEscaped(alloca0) && !set.IsPointingToExternal(alloca0));
@@ -113,6 +120,7 @@ TestCreatePointerObjects()
   assert(!set.HasEscaped(delta0) && !set.IsPointingToExternal(delta0));
   // But import memory objects have always escaped
   assert(set.HasEscaped(import0) && set.IsPointingToExternal(import0));
+#endif
 
   // Registers have helper function for looking up existing PointerObjects
   assert(set.GetRegisterPointerObject(rvsdg.GetAllocaOutput()) == register0);
@@ -190,6 +198,7 @@ TestPointerObjectUnificationPointees()
   assert(set.GetPointsToSet(alloca0).Contains(lambda0));
   assert(set.GetPointsToSet(delta0).Contains(lambda0));
 
+#ifndef ANDERSEN_NO_FLAGS
   // Marking one as pointing to external marks all as pointing to external
   assert(set.MarkAsPointingToExternal(alloca0));
   assert(set.IsPointingToExternal(alloca0));
@@ -199,6 +208,7 @@ TestPointerObjectUnificationPointees()
   assert(set.MarkAsPointeesEscaping(delta0));
   assert(set.HasPointeesEscaping(alloca0));
   assert(set.HasPointeesEscaping(delta0));
+#endif
 
   // Adding a new pointee adds it to all members
   auto import0 = set.CreateImportMemoryObject(rvsdg.GetImportOutput());
@@ -282,7 +292,9 @@ TestClonePointerObjectSet()
   const auto register0 = set.CreateRegisterPointerObject(rvsdg.GetAllocaOutput());
   const auto dummy0 = set.CreateDummyRegisterPointerObject();
   const auto alloca0 = set.CreateAllocaMemoryObject(rvsdg.GetAllocaNode());
+#ifndef ANDERSEN_NO_FLAGS
   const auto malloc0 = set.CreateMallocMemoryObject(rvsdg.GetMallocNode());
+#endif
   const auto delta0 = set.CreateGlobalMemoryObject(rvsdg.GetDeltaNode());
   const auto lambda0 = set.CreateFunctionMemoryObject(rvsdg.GetLambdaNode());
   const auto import0 = set.CreateImportMemoryObject(rvsdg.GetImportOutput());
@@ -314,8 +326,10 @@ TestClonePointerObjectSet()
   clonedSet->UnifyPointerObjects(delta0, dummy0);
   assert(set.GetUnificationRoot(delta0) != set.GetUnificationRoot(dummy0));
 
+#ifndef ANDERSEN_NO_FLAGS
   set.MarkAsPointingToExternal(malloc0);
   assert(!clonedSet->IsPointingToExternal(malloc0));
+#endif
 }
 
 // Test the SupersetConstraint's Apply function
@@ -364,6 +378,7 @@ TestSupersetConstraint()
   assert(set.GetPointsToSet(alloca0).Size() == 2);
   assert(set.GetPointsToSet(alloca0).Contains(alloca2));
 
+#ifndef ANDERSEN_NO_FLAGS
   // Make reg2 point to external, and propagate through constraints
   set.MarkAsPointingToExternal(reg2);
   assert(c2.ApplyDirectly(set));
@@ -375,6 +390,7 @@ TestSupersetConstraint()
   // Now both reg1 and alloca0 may point to external
   assert(set.IsPointingToExternal(reg1));
   assert(set.IsPointingToExternal(alloca0));
+#endif
 }
 
 static void
@@ -453,6 +469,7 @@ TestLoadConstraintDirectly()
   assert(set.GetPointsToSet(reg1).Contains(alloca2));
 }
 
+#ifndef ANDERSEN_NO_FLAGS
 static void
 TestEscapedFunctionConstraint()
 {
@@ -492,6 +509,7 @@ TestEscapedFunctionConstraint()
   assert(result);
   assert(set.HasEscaped(localFunctionPO));
 }
+#endif
 
 static void
 TestFunctionCallConstraint()
@@ -528,6 +546,7 @@ TestFunctionCallConstraint()
   assert(!set.GetPointsToSet(lambdaFArgumentY).Contains(allocaX));
 }
 
+#ifndef ANDERSEN_NO_FLAGS
 static void
 TestAddPointsToExternalConstraint()
 {
@@ -570,6 +589,7 @@ TestAddPointsToExternalConstraint()
   // The other alloca has not escaped
   assert(!set.HasEscaped(alloca0));
 }
+#endif
 
 static void
 TestAddRegisterContentEscapedConstraint()
@@ -651,8 +671,10 @@ TestDrawSubsetGraph()
   // Check that the unified node that is not the root, contains the index of the root
   assert(StringContains(graph.GetNode(nonRoot).GetLabel(), "#" + std::to_string(root)));
 
+#ifndef ANDERSEN_NO_FLAGS
   // Check that the unification root's label indicates pointing to external
   assert(StringContains(graph.GetNode(root).GetLabel(), "{+}"));
+#endif
 
   // Check that allocaReg0 points to alloca0
   assert(StringContains(graph.GetNode(allocaReg0).GetLabel(), strfmt("{", alloca0, "}")));
@@ -682,8 +704,10 @@ TestDrawSubsetGraph()
   assert(StringContains(functionNode.GetLabel(), "function0"));
   // Since functions don't track pointees, they should have NOTRACK
   assert(StringContains(functionNode.GetLabel(), "NOTRACK"));
+#ifndef ANDERSEN_NO_FLAGS
   // They should also both point to external, and escape all pointees
   assert(StringContains(functionNode.GetLabel(), "{+}e"));
+#endif
 
   // Check that the import PointerObject has a fill color, since it has escaped
   auto & importNode = graph.GetNode(import0);
@@ -774,33 +798,45 @@ TestPointerObjectConstraintSetSolve(Args... args)
   assert(set.IsPointingTo(alloca1, alloca2));
   assert(set.GetPointsToSet(alloca2).Size() <= 1);
   assert(set.IsPointingTo(alloca2, alloca3));
+#ifndef ANDERSEN_NO_FLAGS
   assert(set.GetPointsToSet(alloca3).Size() <= 1);
+#endif
   assert(set.IsPointingTo(alloca3, alloca4));
 
   // %5 is a load of alloca1, and should only be a pointer to alloca2
   assert(set.GetPointsToSet(reg[5]).Size() <= 1);
   assert(set.IsPointingTo(reg[5], alloca2));
 
-  // %6 is a load of alloca3, and should only be a pointer to alloca4
+  // %6 is a load of alloca3, and should only be a pointer to alloca4 and external
+#ifdef ANDERSEN_NO_FLAGS
+  assert(set.IsPointingTo(reg[6], set.GetExternalObject()));
+#else
   assert(set.GetPointsToSet(reg[6]).Size() <= 1);
+#endif
   assert(set.IsPointingTo(reg[6], alloca4));
 
   // %7 can point to either alloca2 or alloca4
+#ifndef ANDERSEN_NO_FLAGS
   assert(set.GetPointsToSet(reg[7]).Size() <= 2);
+#endif
   assert(set.IsPointingTo(reg[7], alloca2));
   assert(set.IsPointingTo(reg[7], alloca4));
 
+#ifndef ANDERSEN_NO_FLAGS
   // %8 should point to external, since it points to the superset of %0 and %1
   assert(set.IsPointingToExternal(reg[8]));
   // %8 may also point to alloca4
   assert(set.GetPointsToSet(reg[8]).Size() <= 1);
+#endif
   assert(set.IsPointingTo(reg[8], alloca4));
 
   // %9 may point to v3
   assert(set.IsPointingTo(reg[9], alloca3));
 
   // Due to the store of %9 into [%8], alloca4 may now point back to alloca3
+#ifndef ANDERSEN_NO_FLAGS
   assert(set.GetPointsToSet(alloca4).Size() <= 1);
+#endif
   assert(set.IsPointingTo(alloca4, alloca3));
 
   // Also due to the same store, alloca3 might have escaped
@@ -811,6 +847,16 @@ TestPointerObjectConstraintSetSolve(Args... args)
   assert(!set.HasEscaped(alloca1));
   assert(!set.HasEscaped(alloca2));
 
+#ifdef ANDERSEN_NO_FLAGS
+  // Make sure only the escaped allocas are marked as pointing to external
+  assert(!set.IsPointingTo(alloca1, set.GetExternalObject()));
+  assert(!set.IsPointingTo(alloca2, set.GetExternalObject()));
+  assert(set.IsPointingTo(alloca3, set.GetExternalObject()));
+  assert(set.IsPointingTo(alloca4, set.GetExternalObject()));
+
+  // %10 should also point to external, since it might have been loaded from external
+  assert(set.IsPointingTo(reg[10], set.GetExternalObject()));
+#else
   // Make sure only the escaped allocas are marked as pointing to external
   assert(!set.IsPointingToExternal(alloca1));
   assert(!set.IsPointingToExternal(alloca2));
@@ -819,6 +865,7 @@ TestPointerObjectConstraintSetSolve(Args... args)
 
   // %10 should also point to external, since it might have been loaded from external
   assert(set.IsPointingToExternal(reg[10]));
+#endif
 }
 
 static void
@@ -844,8 +891,10 @@ TestClonePointerObjectConstraintSet()
 
   // Modifying the copy doesn't affect the original
   constraintsClone->AddConstraint(LoadConstraint(register0, alloca0));
+#ifndef ANDERSEN_NO_FLAGS
   assert(constraintsClone->GetConstraints().size() == 2);
   assert(constraints.GetConstraints().size() == 1);
+#endif
 
   // Solving only affects the PointerObjectSet belonging to that constraint set
   constraints.SolveNaively();
@@ -859,7 +908,9 @@ TestClonePointerObjectConstraintSet()
 static int
 TestPointerObjectSet()
 {
+#ifndef ANDERSEN_NO_FLAGS
   TestFlagFunctions();
+#endif
   TestCreatePointerObjects();
   TestPointerObjectUnification();
   TestPointerObjectUnificationPointees();
@@ -869,9 +920,13 @@ TestPointerObjectSet()
   TestSupersetConstraint();
   TestStoreConstraintDirectly();
   TestLoadConstraintDirectly();
+#ifndef ANDERSEN_NO_FLAGS
   TestEscapedFunctionConstraint();
+#endif
   TestFunctionCallConstraint();
+#ifndef ANDERSEN_NO_FLAGS
   TestAddPointsToExternalConstraint();
+#endif
   TestAddRegisterContentEscapedConstraint();
   TestDrawSubsetGraph();
   TestPointerObjectConstraintSetSolve<false>();
