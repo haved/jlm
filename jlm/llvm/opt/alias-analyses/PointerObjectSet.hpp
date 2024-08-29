@@ -32,7 +32,6 @@ enum class PointerObjectKind : uint8_t
   AllocaMemoryObject,
   MallocMemoryObject,
   GlobalMemoryObject,
-  // Represents functions, they can not point to any memory objects.
   FunctionMemoryObject,
   // Represents functions and global variables imported from other modules.
   ImportMemoryObject,
@@ -64,6 +63,11 @@ class PointerObjectSet final
     // The kind of pointer object
     PointerObjectKind Kind : util::BitWidthOfEnum(PointerObjectKind::COUNT);
 
+    // If set, this pointer object may point to other pointer objects.
+    // If unset, the analysis should make no attempt at tracking what this PointerObject may target.
+    // The final PointsToGraph will not have any outgoing edges for this object.
+    const uint8_t CanPointFlag : 1;
+
 #ifndef ANDERSEN_NO_FLAGS
     // This memory object's address is known outside the module.
     // Can only be true on memory objects.
@@ -80,8 +84,8 @@ class PointerObjectSet final
     uint8_t PointsToExternal : 1;
 #endif
 
-    explicit PointerObject(PointerObjectKind kind)
-        : Kind(kind)
+    explicit PointerObject(PointerObjectKind kind, bool canPoint)
+        : Kind(kind), CanPointFlag(canPoint)
 #ifndef ANDERSEN_NO_FLAGS
           ,
           HasEscaped(0),
@@ -91,8 +95,22 @@ class PointerObjectSet final
     {
       JLM_ASSERT(kind != PointerObjectKind::COUNT);
 
+      // Ensure that certain kinds of PointerObject always CanPoint or never CanPoint
+      switch(kind)
+      {
+      case PointerObjectKind::ImportMemoryObject:
+      case PointerObjectKind::FunctionMemoryObject:
+        JLM_ASSERT(!CanPoint());
+        break;
+      case PointerObjectKind::Register:
+      case PointerObjectKind::ExternalObject:
+        JLM_ASSERT(CanPoint());
+        break;
+      default: break;
+      }
+
 #ifndef ANDERSEN_NO_FLAGS
-      if (!ShouldTrackPointees())
+      if (!CanPoint())
       {
         // No attempt is made at tracking pointees, so use these flags to inform others
         PointeesEscaping = 1;
@@ -120,16 +138,13 @@ class PointerObjectSet final
 
     /**
      * Some memory objects can only be pointed to, but never themselves contain pointers.
-     * To avoid tracking their pointees, they are instead marked as both PointsToExternal and
-     * PointeesEscaping. This makes their points-to set equivalent to the set of all escaped
-     * memory objects, which means the set of explicit pointees can be empty.
      * When converting the analysis result to a PointsToGraph, these PointerObjects get no pointees.
-     * @return true if the analysis should attempt track the points-to set of this PointerObject.
+     * @return true if the analysis tracks the points-to set of this PointerObject.
      */
     [[nodiscard]] bool
-    ShouldTrackPointees() const noexcept
+    CanPoint() const noexcept
     {
-      return Kind != PointerObjectKind::FunctionMemoryObject;
+      return CanPointFlag;
     }
 
     /**
@@ -182,7 +197,7 @@ class PointerObjectSet final
    * Internal helper function for adding PointerObjects, use the Create* methods instead
    */
   [[nodiscard]] PointerObjectIndex
-  AddPointerObject(PointerObjectKind kind);
+  AddPointerObject(PointerObjectKind kind, bool canPoint);
 
   /**
    * Internal helper function for making P(superset) a superset of P(subset), with a callback.
@@ -202,10 +217,10 @@ public:
   NumPointerObjects() const noexcept;
 
   /**
-   * @return the number of PointerObjects where CanTrackPointeesImplicitly() is true
+   * @return the number of PointerObjects where CanPoint() is true
    */
   [[nodiscard]] size_t
-  NumPointerObjectsWithImplicitPointees() const noexcept;
+  NumPointerObjectsCanPoint() const noexcept;
 
   /**
    * @return the number of PointerObjects in the set matching the specified \p kind.
@@ -261,13 +276,13 @@ public:
   CreateDummyRegisterPointerObject();
 
   [[nodiscard]] PointerObjectIndex
-  CreateAllocaMemoryObject(const rvsdg::node & allocaNode);
+  CreateAllocaMemoryObject(const rvsdg::node & allocaNode, bool canPoint);
 
   [[nodiscard]] PointerObjectIndex
-  CreateMallocMemoryObject(const rvsdg::node & mallocNode);
+  CreateMallocMemoryObject(const rvsdg::node & mallocNode, bool canPoint);
 
   [[nodiscard]] PointerObjectIndex
-  CreateGlobalMemoryObject(const delta::node & deltaNode);
+  CreateGlobalMemoryObject(const delta::node & deltaNode, bool canPoint);
 
   /**
    * Creates a PointerObject of Function kind associated with the given \p lambdaNode.
@@ -333,7 +348,7 @@ public:
    * @return true if the PointerObject with the given \p index can point, otherwise false
    */
   [[nodiscard]] bool
-  ShouldTrackPointees(PointerObjectIndex index) const noexcept;
+  CanPoint(PointerObjectIndex index) const noexcept;
 
   /**
    * @return true if the PointerObject with the given \p index is a Register

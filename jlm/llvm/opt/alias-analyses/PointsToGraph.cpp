@@ -161,6 +161,46 @@ PointsToGraph::AddImportNode(std::unique_ptr<PointsToGraph::ImportNode> node)
   return *tmp;
 }
 
+std::pair<size_t, size_t>
+PointsToGraph::NumEdges() const noexcept
+{
+  size_t numEdges = 0;
+
+  // Only used for asserting that all nodes were counted
+  size_t numMemoryNodes = 0;
+
+  auto countMemoryNodes = [&](auto iterable)
+  {
+    for (const MemoryNode & node : iterable)
+    {
+      numEdges += node.NumTargets();
+      numMemoryNodes++;
+    }
+  };
+
+  countMemoryNodes(AllocaNodes());
+  countMemoryNodes(DeltaNodes());
+  countMemoryNodes(ImportNodes());
+  countMemoryNodes(LambdaNodes());
+  countMemoryNodes(MallocNodes());
+
+  numEdges += GetExternalMemoryNode().NumTargets();
+  numMemoryNodes += 1;
+
+  JLM_ASSERT(numMemoryNodes == NumMemoryNodes());
+
+  // For register nodes, the number of edges and number of points-to relations is different
+  size_t numPointsToRelations = numEdges;
+  for (auto & registerNode : RegisterNodes())
+  {
+    numEdges += registerNode.NumTargets();
+    numPointsToRelations += registerNode.NumTargets() * registerNode.GetOutputs().Size();
+  }
+
+  return std::make_pair(numEdges, numPointsToRelations);
+}
+
+
 bool
 PointsToGraph::IsSupergraphOf(const jlm::llvm::aa::PointsToGraph & subgraph) const
 {

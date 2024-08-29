@@ -360,6 +360,15 @@ public:
   AddImportNode(std::unique_ptr<PointsToGraph::ImportNode> node);
 
   /**
+   * Gets the total number of edges in the PointsToGraph.
+   * For RegisterNodes, the number of outgoing edges is also multiplied by the number of
+   * registers represented by the node, known as the number of points-to relations.
+   * @return a pair (number of edges, number of points-to relations)
+   */
+  [[nodiscard]] std::pair<size_t, size_t>
+  NumEdges() const noexcept;
+
+  /**
    * Checks if this PointsToGraph is a supergraph of \p subgraph.
    * Every node and every edge in the subgraph needs to have corresponding nodes and edges
    * present in this graph, defined by nodes representing the same registers and memory objects.

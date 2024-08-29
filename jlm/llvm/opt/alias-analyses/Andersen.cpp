@@ -156,11 +156,11 @@ Andersen::Configuration::GetAllConfigurations()
 class Andersen::Statistics final : public util::Statistics
 {
   static constexpr const char * NumPointerObjects_ = "#PointerObjects";
-  static constexpr const char * NumPointerObjectsWithImplicitPointees_ =
-      "#PointerObjectsWithImplicitPointees";
+  static constexpr const char * NumMemoryPointerObjects_ = "#MemoryPointerObjects";
   static constexpr const char * NumRegisterPointerObjects_ = "#RegisterPointerObjects";
   static constexpr const char * NumRegistersMappedToPointerObject_ =
       "#RegistersMappedToPointerObject";
+  static constexpr const char * NumPointerObjectsCanPoint_ = "#PointerObjectsCanPoint";
 
   static constexpr const char * NumBaseConstraints_ = "#BaseConstraints";
   static constexpr const char * NumSupersetConstraints_ = "#SupersetConstraints";
@@ -199,14 +199,38 @@ class Andersen::Statistics final : public util::Statistics
   static constexpr const char * NumPIPExplicitPointeesRemoved_ = "#PIPExplicitPointeesRemoved";
 
   // After solving statistics
-  static constexpr const char * NumEscapedMemoryObjects_ = "#EscapedMemoryObjects";
   static constexpr const char * NumUnificationRoots_ = "#UnificationRoots";
-  // These next measurements only count flags and pointees of unification roots
-  static constexpr const char * NumPointsToExternalFlags_ = "#PointsToExternalFlags";
-  static constexpr const char * NumPointeesEscapingFlags_ = "#PointeesEscapingFlags";
+
+  static constexpr const char * NumCanPointsEscaped_ = "#CanPointsEscaped";
+  static constexpr const char * NumCantPointsEscaped_ = "#CantPointsEscaped";
+
+  // The number of explicit pointees, counting only unification roots
   static constexpr const char * NumExplicitPointees_ = "#ExplicitPointees";
-  // If a pointee is both implicit (through PointsToExternal flag) and explicit
+  // The number of explicit pointees, counting all CanPoint PointerObjects
+  static constexpr const char * NumExplicitPointsToRelations_ = "#ExplicitPointsToRelations";
+
+  // The number of PointsToExternal flags, counting only unification roots
+  static constexpr const char * NumPointsToExternalFlags_ = "#PointsToExternalFlags";
+  // The number of PointsToExternal flagged PointerObjects, counting all CanPoint POs
+  static constexpr const char * NumPointsToExternalRelations_ = "#PointsToExternalRelations";
+
+  // The number of PointeesEscaping flags, counting only unification roots
+  static constexpr const char * NumPointeesEscapingFlags_ = "#PointeesEscapingFlags";
+  // The number of PointeesEscaping flagged PointerObjects, counting all CanPoint POs
+  static constexpr const char * NumPointeesEscapingRelations_ = "#PointeesEscapingRelations";
+
+  // The total number of pointees among all CanPoint PointerObjects, including implicit
+  static constexpr const char * NumPointsToRelations_ = "#PointsToRelations";
+
+  // The number of doubled up pointees, only counting unification roots
   static constexpr const char * NumDoubledUpPointees_ = "#DoubledUpPointees";
+  // The number of doubled up pointees, counting all PointerObjects marked CanPoint()
+  static constexpr const char * NumDoubledUpPointsToRelations_ = "#DoubledUpPointsToRelations";
+
+  // Number of unifications where no members have the CanPoint flag
+  static constexpr const char * NumCantPointUnifications_ = "#CantPointUnifications";
+  // In unifications where no member CanPoint, add up their explicit pointees
+  static constexpr const char * NumCantPointExplicitPointees_ = "#CantPointExplicitPointees";
 
   static constexpr const char * AnalysisTimer_ = "AnalysisTimer";
   static constexpr const char * SetAndConstraintBuildingTimer_ = "SetAndConstraintBuildingTimer";
@@ -246,12 +270,11 @@ public:
     GetTimer(SetAndConstraintBuildingTimer_).stop();
 
     AddMeasurement(NumPointerObjects_, set.NumPointerObjects());
-    AddMeasurement(
-        NumPointerObjectsWithImplicitPointees_,
-        set.NumPointerObjectsWithImplicitPointees());
-    AddMeasurement(
-        NumRegisterPointerObjects_,
-        set.NumPointerObjectsOfKind(PointerObjectKind::Register));
+    AddMeasurement(NumPointerObjectsCanPoint_, set.NumPointerObjectsCanPoint());
+    auto numRegisters = set.NumPointerObjectsOfKind(PointerObjectKind::Register);
+    auto numMemoryObjects = set.NumPointerObjects() - numRegisters;
+    AddMeasurement(NumMemoryPointerObjects_, numMemoryObjects);
+    AddMeasurement(NumRegisterPointerObjects_, numRegisters);
     AddMeasurement(NumRegistersMappedToPointerObject_, set.GetRegisterMap().size());
 
     size_t numSupersetConstraints = 0;
@@ -367,21 +390,73 @@ public:
   void
   AddStatisticsFromSolution(const PointerObjectSet & set)
   {
-    size_t numEscapedMemoryObjects = 0;
     size_t numUnificationRoots = 0;
+
+    size_t numCanPointEscaped = 0;
+    size_t numCantPointEscaped = 0;
+
+    size_t numExplicitPointees = 0;
+    size_t numExplicitPointsToRelations = 0;
 #ifndef ANDERSEN_NO_FLAGS
     size_t numPointsToExternalFlags = 0;
+    size_t numPointsToExternalRelations = 0;
     size_t numPointeesEscapingFlags = 0;
+    size_t numPointeesEscapingRelations = 0;
 #endif
-    size_t numExplicitPointees = 0;
+
+    size_t numPointsToRelations = 0;
+
 #ifndef ANDERSEN_NO_FLAGS
     size_t numDoubleUpPointees = 0;
+    size_t numDoubleUpPointsToRelations = 0;
 #endif
+
+    std::vector<bool> unificationHasCanPoint(set.NumPointerObjects(), false);
 
     for (PointerObjectIndex i = 0; i < set.NumPointerObjects(); i++)
     {
       if (set.HasEscaped(i))
-        numEscapedMemoryObjects++;
+      {
+        if (set.CanPoint(i))
+          numCanPointEscaped++;
+        else
+          numCantPointEscaped++;
+      }
+
+      const auto & pointees = set.GetPointsToSet(i);
+
+      if (set.CanPoint(i))
+      {
+        numExplicitPointsToRelations += pointees.Size();
+
+#ifdef ANDERSEN_NO_FLAGS
+        // With no flags, all points-to relations are explicit
+        numPointsToRelations += pointees.Size();
+#else
+        numPointeesEscapingRelations += set.HasPointeesEscaping(i);
+
+        if (set.IsPointingToExternal(i))
+        {
+          numPointsToExternalRelations++;
+          for (auto pointee : pointees)
+          {
+            // Only add the pointee to numPointsToRelations if it is not doubled up
+            // Adding all implicit points-to relations is done after the loop
+            if (set.HasEscaped(pointee))
+              numDoubledUpPointsToRelations++;
+            else
+              numPointsToRelations++;
+          }
+        }
+        else
+        {
+          numPointsToRelations += pointees.Size();
+        }
+#endif
+
+        // This unification has at least one CanPoint member
+        unificationHasCanPoint[set.GetUnificationRoot(i)] = true;
+      }
 
       if (!set.IsUnificationRoot(i))
         continue;
@@ -394,7 +469,6 @@ public:
         numPointeesEscapingFlags++;
 #endif
 
-      const auto & pointees = set.GetPointsToSet(i);
       numExplicitPointees += pointees.Size();
 
 #ifndef ANDERSEN_NO_FLAGS
@@ -405,16 +479,46 @@ public:
             numDoubleUpPointees++;
 #endif
     }
-    AddMeasurement(NumEscapedMemoryObjects_, numEscapedMemoryObjects);
+
+    // Now go over unifications where no member is marked CanPoint
+    size_t numCantPointUnifications = 0;
+    size_t numCantPointExplicitPointees = 0;
+    for (PointerObjectIndex i = 0; i < set.NumPointerObjects(); i++)
+    {
+      if (!set.IsUnificationRoot(i))
+        continue;
+      if (unificationHasCanPoint[i])
+        continue;
+      numCantPointUnifications++;
+      numCantPointExplicitPointees += set.GetPointsToSet(i).Size();
+    }
+
     AddMeasurement(NumUnificationRoots_, numUnificationRoots);
+    AddMeasurement(NumCanPointsEscaped_, numCanPointEscaped);
+    AddMeasurement(NumCantPointsEscaped_, numCantPointEscaped);
+
+    AddMeasurement(NumExplicitPointees_, numExplicitPointees);
+    AddMeasurement(NumExplicitPointsToRelations_, numExplicitPointsToRelations);
+
 #ifndef ANDERSEN_NO_FLAGS
     AddMeasurement(NumPointsToExternalFlags_, numPointsToExternalFlags);
+    AddMeasurement(NumPointsToExternalRelations_, numPointsToExternalRelations);
     AddMeasurement(NumPointeesEscapingFlags_, numPointeesEscapingFlags);
+    AddMeasurement(NumPointeesEscapingRelations_, numPointeesEscapingRelations);
+
+    numPointsToRelations +=
+        numPointsToExternalRelations * (numCanPointEscaped + numCantPointEscaped);
 #endif
-    AddMeasurement(NumExplicitPointees_, numExplicitPointees);
+
+    AddMeasurement(NumPointsToRelations_, numPointsToRelations);
+
 #ifndef ANDERSEN_NO_FLAGS
-    AddMeasurement(NumDoubledUpPointees_, numDoubleUpPointees);
+    AddMeasurement(NumDoubledUpPointees_, numDoubledUpPointees);
+    AddMeasurement(NumDoubledUpPointsToRelations_, numDoubledUpPointsToRelations);
 #endif
+
+    AddMeasurement(NumCantPointUnifications_, numCantPointUnifications);
+    AddMeasurement(NumCantPointExplicitPointees_, numCantPointExplicitPointees);
   }
 
   void
@@ -454,6 +558,9 @@ public:
     AddMeasurement(
         Label::NumPointsToGraphExternalMemorySources,
         pointsToGraph.GetExternalMemoryNode().NumSources());
+    auto [numEdges, numPointsToRelations] = pointsToGraph.NumEdges();
+    AddMeasurement("#PointsToGraphEdges", numEdges);
+    AddMeasurement("#PointsToGraphPointsToRelations", numPointsToRelations);
   }
 
   void
@@ -1124,6 +1231,8 @@ Andersen::SolveConstraints(
     const Configuration & config,
     Statistics & statistics)
 {
+  std::cerr << "Solving using " << config.ToString() << std::endl;
+
   statistics.AddStatisticFromConfiguration(config);
 
   if (config.IsOfflineVariableSubstitutionEnabled())
@@ -1171,7 +1280,9 @@ Andersen::Analyze(const RvsdgModule & module, util::StatisticsCollector & statis
   statistics->StartAndersenStatistics(module.Rvsdg());
 
   // Check environment variables for debugging flags
-  const bool testAllConfigs = std::getenv(ENV_TEST_ALL_CONFIGS);
+  size_t testAllConfigIterations = 0;
+  if (auto env = std::getenv(ENV_TEST_ALL_CONFIGS))
+    testAllConfigIterations = std::stoi(env);
   const bool doubleCheck = std::getenv(ENV_DOUBLE_CHECK);
 
   const bool dumpGraphs = std::getenv(ENV_DUMP_SUBSET_GRAPH);
@@ -1181,7 +1292,7 @@ Andersen::Analyze(const RvsdgModule & module, util::StatisticsCollector & statis
 
   // If solving multiple times, make a copy of the original constraint set
   std::pair<std::unique_ptr<PointerObjectSet>, std::unique_ptr<PointerObjectConstraintSet>> copy;
-  if (testAllConfigs || doubleCheck)
+  if (testAllConfigIterations || doubleCheck)
     copy = Constraints_->Clone();
 
   // Draw subset graph both before and after solving
@@ -1204,23 +1315,23 @@ Andersen::Analyze(const RvsdgModule & module, util::StatisticsCollector & statis
   statisticsCollector.CollectDemandedStatistics(std::move(statistics));
 
   // Solve again if double-checking against naive is enabled
-  if (testAllConfigs || doubleCheck)
+  if (testAllConfigIterations || doubleCheck)
   {
     if (doubleCheck)
       std::cerr << "Double checking Andersen analysis using naive solving" << std::endl;
 
     // If double-checking, only use the naive configuration. Otherwise try all configurations
     std::vector<Configuration> configs;
-    if (testAllConfigs)
+    if (testAllConfigIterations)
       configs = Configuration::GetAllConfigurations();
     else
       configs.push_back(Configuration::NaiveSolverConfiguration());
 
-    // If testing all, benchmarking is being done, so do 50 iterations of all configurations.
-    // Double-checking against Set_ only needs to be done once per configuration
-    const auto iterations = testAllConfigs ? 50 : 1;
+    // If testing all configurations, do it as many times as requested.
+    // Otherwise, do it at least once
+    const auto iterations = std::max(testAllConfigIterations, size_t(1));
 
-    for (auto i = 0; i < iterations; i++)
+    for (size_t i = 0; i < iterations; i++)
     {
       for (const auto & config : configs)
       {
@@ -1272,7 +1383,9 @@ Andersen::ConstructPointsToGraphFromPointerObjectSet(
   // This vector has the same indexing as the nodes themselves, register nodes become nullptr.
   std::vector<PointsToGraph::MemoryNode *> memoryNodes(set.NumPointerObjects());
 
-#ifndef ANDERSEN_NO_FLAGS
+#ifdef ANDERSEN_NO_FLAGS
+  memoryNodes[set.GetExternalObject()] = &pointsToGraph->GetExternalMemoryNode();
+#else
   // Nodes that should point to external in the final graph.
   // They also get explicit edges connecting them to all escaped memory nodes.
   std::vector<PointsToGraph::Node *> pointsToExternal;
@@ -1280,8 +1393,6 @@ Andersen::ConstructPointsToGraphFromPointerObjectSet(
   // A list of all memory nodes that have been marked as escaped
   std::vector<PointsToGraph::MemoryNode *> escapedMemoryNodes;
 #endif
-
-  memoryNodes[set.GetExternalObject()] = &pointsToGraph->GetExternalMemoryNode();
 
   // First all memory nodes are created
   for (auto [allocaNode, pointerObjectIndex] : set.GetAllocaMap())
@@ -1314,10 +1425,6 @@ Andersen::ConstructPointsToGraphFromPointerObjectSet(
   // PointerObject's points-to set.
   auto applyPointsToSet = [&](PointsToGraph::Node & node, PointerObjectIndex index)
   {
-    // PointerObjects marked as not tracking pointees should not point to anything
-    if (!set.ShouldTrackPointees(index))
-      return;
-
 #ifndef ANDERSEN_NO_FLAGS
     // Add all PointsToGraph nodes who should point to external to the list
     if (set.IsPointingToExternal(index))
@@ -1354,14 +1461,17 @@ Andersen::ConstructPointsToGraphFromPointerObjectSet(
   for (PointerObjectIndex idx = 0; idx < set.NumPointerObjects(); idx++)
   {
 #ifdef ANDERSEN_NO_FLAGS
-    // Do not add out-edges from the external node
+    // Do not add out-edges from the external node, despite it being "CanPoint()"
+    // This is just due to the fact that escaped objects are marked
     if (idx == set.GetExternalObject())
       continue;
 #endif
     if (memoryNodes[idx] == nullptr)
       continue; // Skip all nodes that are not MemoryNodes
 
-    applyPointsToSet(*memoryNodes[idx], idx);
+    // Add outgoing edges to nodes representing pointer values
+    if (set.CanPoint(idx))
+      applyPointsToSet(*memoryNodes[idx], idx);
 
     if (set.HasEscaped(idx))
     {
@@ -1386,6 +1496,11 @@ Andersen::ConstructPointsToGraphFromPointerObjectSet(
   }
   statistics.StopExternalToAllEscapedStatistics();
 #endif
+
+  // We do not use the unknown node,
+  JLM_ASSERT(pointsToGraph->GetExternalMemoryNode().NumTargets() == 0);
+  JLM_ASSERT(pointsToGraph->GetUnknownMemoryNode().NumSources() == 0);
+  JLM_ASSERT(pointsToGraph->GetUnknownMemoryNode().NumTargets() == 0);
 
   statistics.StopPointsToGraphConstructionStatistics(*pointsToGraph);
   return pointsToGraph;

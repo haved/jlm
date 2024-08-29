@@ -1150,6 +1150,10 @@ TestConstructPointsToGraph()
   // mallocR points to mallocNode, as well as everything that has escaped
   assert(TargetsExactly(mallocRNode, { &mallocNode, &deltaNode, &importNode, &externalMemory }));
 
+  // Adding up the out-edges for all nodes
+  auto [_, numPointsToRelations] = ptg->NumEdges();
+  assert(numPointsToRelations == 2 * 3 + 1 + 1 + 1 + 3 + 3 + 4);
+
   return 0;
 }
 JLM_UNIT_TEST_REGISTER(

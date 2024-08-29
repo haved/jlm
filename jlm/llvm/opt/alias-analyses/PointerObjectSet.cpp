@@ -36,12 +36,12 @@ PointerObjectSet::PointerObjectSet()
 }
 
 PointerObjectIndex
-PointerObjectSet::AddPointerObject(PointerObjectKind kind)
+PointerObjectSet::AddPointerObject(PointerObjectKind kind, bool canPoint)
 {
   JLM_ASSERT(PointerObjects_.size() < std::numeric_limits<PointerObjectIndex>::max());
   PointerObjectIndex index = PointerObjects_.size();
 
-  PointerObjects_.emplace_back(kind);
+  PointerObjects_.emplace_back(kind, canPoint);
   if constexpr (ENABLE_UNIFICATION)
   {
     PointerObjectParents_.push_back(index);
@@ -58,18 +58,14 @@ PointerObjectSet::NumPointerObjects() const noexcept
 }
 
 size_t
-PointerObjectSet::NumPointerObjectsWithImplicitPointees() const noexcept
+PointerObjectSet::NumPointerObjectsCanPoint() const noexcept
 {
-#ifdef ANDERSEN_NO_FLAGS
-  return 0;
-#else
   size_t count = 0;
   for (auto & pointerObject : PointerObjects_)
   {
-    count += pointerObject.CanTrackPointeesImplicitly();
+    count += pointerObject.CanPoint();
   }
   return count;
-#endif
 }
 
 size_t
@@ -87,7 +83,7 @@ PointerObjectIndex
 PointerObjectSet::CreateRegisterPointerObject(const rvsdg::output & rvsdgOutput)
 {
   JLM_ASSERT(RegisterMap_.count(&rvsdgOutput) == 0);
-  return RegisterMap_[&rvsdgOutput] = AddPointerObject(PointerObjectKind::Register);
+  return RegisterMap_[&rvsdgOutput] = AddPointerObject(PointerObjectKind::Register, true);
 }
 
 PointerObjectIndex
@@ -119,35 +115,36 @@ PointerObjectSet::MapRegisterToExistingPointerObject(
 PointerObjectIndex
 PointerObjectSet::CreateDummyRegisterPointerObject()
 {
-  return AddPointerObject(PointerObjectKind::Register);
+  return AddPointerObject(PointerObjectKind::Register, true);
 }
 
 PointerObjectIndex
-PointerObjectSet::CreateAllocaMemoryObject(const rvsdg::node & allocaNode)
+PointerObjectSet::CreateAllocaMemoryObject(const rvsdg::node & allocaNode, bool canPoint)
 {
   JLM_ASSERT(AllocaMap_.count(&allocaNode) == 0);
-  return AllocaMap_[&allocaNode] = AddPointerObject(PointerObjectKind::AllocaMemoryObject);
+  return AllocaMap_[&allocaNode] =
+             AddPointerObject(PointerObjectKind::AllocaMemoryObject, canPoint);
 }
 
 PointerObjectIndex
-PointerObjectSet::CreateMallocMemoryObject(const rvsdg::node & mallocNode)
+PointerObjectSet::CreateMallocMemoryObject(const rvsdg::node & mallocNode, bool canPoint)
 {
   JLM_ASSERT(MallocMap_.count(&mallocNode) == 0);
-  return MallocMap_[&mallocNode] = AddPointerObject(PointerObjectKind::MallocMemoryObject);
+  return MallocMap_[&mallocNode] = AddPointerObject(PointerObjectKind::MallocMemoryObject, canPoint);
 }
 
 PointerObjectIndex
-PointerObjectSet::CreateGlobalMemoryObject(const delta::node & deltaNode)
+PointerObjectSet::CreateGlobalMemoryObject(const delta::node & deltaNode, bool canPoint)
 {
   JLM_ASSERT(GlobalMap_.count(&deltaNode) == 0);
-  return GlobalMap_[&deltaNode] = AddPointerObject(PointerObjectKind::GlobalMemoryObject);
+  return GlobalMap_[&deltaNode] = AddPointerObject(PointerObjectKind::GlobalMemoryObject, canPoint);
 }
 
 PointerObjectIndex
 PointerObjectSet::CreateFunctionMemoryObject(const lambda::node & lambdaNode)
 {
   JLM_ASSERT(!FunctionMap_.HasKey(&lambdaNode));
-  const auto pointerObject = AddPointerObject(PointerObjectKind::FunctionMemoryObject);
+  const auto pointerObject = AddPointerObject(PointerObjectKind::FunctionMemoryObject, false);
   FunctionMap_.Insert(&lambdaNode, pointerObject);
   return pointerObject;
 }
@@ -170,7 +167,7 @@ PointerObjectIndex
 PointerObjectSet::CreateImportMemoryObject(const GraphImport & importNode)
 {
   JLM_ASSERT(ImportMap_.count(&importNode) == 0);
-  auto importMemoryObject = AddPointerObject(PointerObjectKind::ImportMemoryObject);
+  auto importMemoryObject = AddPointerObject(PointerObjectKind::ImportMemoryObject, false);
   ImportMap_[&importNode] = importMemoryObject;
 
   // Memory objects defined in other modules are definitely not private to this module
@@ -222,10 +219,10 @@ PointerObjectSet::GetPointerObjectKind(PointerObjectIndex index) const noexcept
 }
 
 bool
-PointerObjectSet::ShouldTrackPointees(PointerObjectIndex index) const noexcept
+PointerObjectSet::CanPoint(PointerObjectIndex index) const noexcept
 {
   JLM_ASSERT(index < NumPointerObjects());
-  return PointerObjects_[index].ShouldTrackPointees();
+  return PointerObjects_[index].CanPoint();
 }
 
 bool
