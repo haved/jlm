@@ -28,7 +28,7 @@ static constexpr bool ENABLE_UNIFICATION = true;
 PointerObjectSet::PointerObjectSet()
 {
 #ifdef ANDERSEN_NO_FLAGS
-  auto index = AddPointerObject(PointerObjectKind::ExternalObject);
+  auto index = AddPointerObject(PointerObjectKind::ExternalObject, true);
   assert(index == ExternalPointerObject_);
   // It points to itself
   AddToPointsToSet(ExternalPointerObject_, ExternalPointerObject_);
@@ -1038,8 +1038,8 @@ CreateSubsetGraphNodeLabel(PointerObjectSet & set, PointerObjectIndex index)
     label << "#" << set.GetUnificationRoot(index);
   }
 
-  if (!set.ShouldTrackPointees(index))
-    label << "\nNOTRACK";
+  if (!set.CanPoint(index))
+    label << "\nCantPoint";
 
   return label.str();
 }

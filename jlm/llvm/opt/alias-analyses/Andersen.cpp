@@ -407,8 +407,8 @@ public:
     size_t numPointsToRelations = 0;
 
 #ifndef ANDERSEN_NO_FLAGS
-    size_t numDoubleUpPointees = 0;
-    size_t numDoubleUpPointsToRelations = 0;
+    size_t numDoubledUpPointees = 0;
+    size_t numDoubledUpPointsToRelations = 0;
 #endif
 
     std::vector<bool> unificationHasCanPoint(set.NumPointerObjects(), false);
@@ -438,7 +438,7 @@ public:
         if (set.IsPointingToExternal(i))
         {
           numPointsToExternalRelations++;
-          for (auto pointee : pointees)
+          for (auto pointee : pointees.Items())
           {
             // Only add the pointee to numPointsToRelations if it is not doubled up
             // Adding all implicit points-to relations is done after the loop
@@ -476,7 +476,7 @@ public:
       if (set.IsPointingToExternal(i))
         for (auto pointee : pointees.Items())
           if (set.HasEscaped(pointee))
-            numDoubleUpPointees++;
+            numDoubledUpPointees++;
 #endif
     }
 
@@ -632,11 +632,13 @@ Andersen::AnalyzeSimpleNode(const rvsdg::simple_node & node)
 void
 Andersen::AnalyzeAlloca(const rvsdg::simple_node & node)
 {
-  JLM_ASSERT(is<alloca_op>(&node));
+  const auto allocaOp = util::AssertedCast<const alloca_op>(&node.operation());
 
   const auto & outputRegister = *node.output(0);
   const auto outputRegisterPO = Set_->CreateRegisterPointerObject(outputRegister);
-  const auto allocaPO = Set_->CreateAllocaMemoryObject(node);
+
+  const bool canPoint = IsOrContainsPointerType(*allocaOp->ValueType());
+  const auto allocaPO = Set_->CreateAllocaMemoryObject(node, canPoint);
   Constraints_->AddPointerPointeeConstraint(outputRegisterPO, allocaPO);
 }
 
@@ -647,7 +649,9 @@ Andersen::AnalyzeMalloc(const rvsdg::simple_node & node)
 
   const auto & outputRegister = *node.output(0);
   const auto outputRegisterPO = Set_->CreateRegisterPointerObject(outputRegister);
-  const auto mallocPO = Set_->CreateMallocMemoryObject(node);
+
+  // We do not know what types will be stored in the malloc, so let it track pointers
+  const auto mallocPO = Set_->CreateMallocMemoryObject(node, true);
   Constraints_->AddPointerPointeeConstraint(outputRegisterPO, mallocPO);
 }
 
@@ -984,11 +988,14 @@ Andersen::AnalyzeDelta(const delta::node & delta)
   // Get the result register from the subregion
   auto & resultRegister = *delta.result()->origin();
 
-  // Create a global memory object representing the global variable
-  const auto globalPO = Set_->CreateGlobalMemoryObject(delta);
+  // If the type of the delta can point, the analysis should track its set of possible pointees
+  bool canPoint = IsOrContainsPointerType(delta.type());
 
-  // If the subregion result is a pointer, make the global point to the same variables
-  if (IsOrContainsPointerType(resultRegister.type()))
+  // Create a global memory object representing the global variable
+  const auto globalPO = Set_->CreateGlobalMemoryObject(delta, canPoint);
+
+  // If the initializer subregion result is a pointer, make the global point to what it points to
+  if (canPoint)
   {
     const auto resultRegisterPO = Set_->GetRegisterPointerObject(resultRegister);
     Constraints_->AddConstraint(SupersetConstraint(globalPO, resultRegisterPO));
@@ -1174,10 +1181,6 @@ Andersen::AnalyzeRvsdg(const rvsdg::graph & graph)
     // Only care about imported pointer values
     if (!IsOrContainsPointerType(argument.type()))
       continue;
-
-    // TODO: Mark the created ImportMemoryObject based on it being a function or a variable
-    // Functions and non-pointer typed globals can not point to other MemoryObjects,
-    // so letting them be ShouldTrackPointees() == false aids analysis.
 
     // Create a memory PointerObject representing the target of the external symbol
     // We can assume that two external symbols don't alias, clang does.

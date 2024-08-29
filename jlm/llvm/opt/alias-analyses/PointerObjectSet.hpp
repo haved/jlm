@@ -103,7 +103,9 @@ class PointerObjectSet final
         JLM_ASSERT(!CanPoint());
         break;
       case PointerObjectKind::Register:
+#ifdef ANDERSEN_NO_FLAGS
       case PointerObjectKind::ExternalObject:
+#endif
         JLM_ASSERT(CanPoint());
         break;
       default: break;
