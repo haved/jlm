@@ -200,7 +200,6 @@ PointsToGraph::NumEdges() const noexcept
   return std::make_pair(numEdges, numPointsToRelations);
 }
 
-
 bool
 PointsToGraph::IsSupergraphOf(const jlm::llvm::aa::PointsToGraph & subgraph) const
 {

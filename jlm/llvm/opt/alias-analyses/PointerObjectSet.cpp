@@ -130,7 +130,8 @@ PointerObjectIndex
 PointerObjectSet::CreateMallocMemoryObject(const rvsdg::node & mallocNode, bool canPoint)
 {
   JLM_ASSERT(MallocMap_.count(&mallocNode) == 0);
-  return MallocMap_[&mallocNode] = AddPointerObject(PointerObjectKind::MallocMemoryObject, canPoint);
+  return MallocMap_[&mallocNode] =
+             AddPointerObject(PointerObjectKind::MallocMemoryObject, canPoint);
 }
 
 PointerObjectIndex
@@ -841,7 +842,7 @@ HandleEscapedFunction(
     markAsPointsToExternal(argumentPO.value());
   }
 
-  // All results of pointer type need to be flagged as HasEscaped
+  // All results of pointer type need to be flagged as pointees escaping
   for (auto & result : lambdaNode.fctresults())
   {
     const auto resultPO = set.TryGetRegisterPointerObject(*result.origin());
@@ -849,12 +850,12 @@ HandleEscapedFunction(
       continue;
 
 #ifndef ANDERSEN_NO_FLAGS
-    // Nothing to be done if it is already marked as escaped
-    if (set.MarkAsPointeesEscaping(resultPO.value()))
+    // Nothing to be done if it is already marked as pointees escaping
+    if (set.HasPointeesEscaping(resultPO.value()))
       continue;
 #endif
 
-    // Mark the result register as escaping any pointees it may have
+    // Mark the result register as making any pointees it may have escape
     markAsPointeesEscaping(resultPO.value());
   }
 }

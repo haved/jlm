@@ -102,7 +102,7 @@ TestUnifiesCycles()
 #else
   assert(lcd.NumCycleUnifications() == set.NumPointerObjects() - 1);
 #endif
-  for (PointerObjectIndex i = 1; i < sizeof(node)/sizeof(*node); i++)
+  for (PointerObjectIndex i = 1; i < sizeof(node) / sizeof(*node); i++)
   {
     assert(set.GetUnificationRoot(node[0]) == set.GetUnificationRoot(node[i]));
   }

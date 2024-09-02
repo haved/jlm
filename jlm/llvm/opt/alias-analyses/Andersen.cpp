@@ -1308,8 +1308,7 @@ Andersen::Analyze(const RvsdgModule & module, util::StatisticsCollector & statis
   if (dumpGraphs)
   {
     auto & graph = Constraints_->DrawSubsetGraph(writer);
-    graph.AppendToLabel("After Solving");
-    writer.OutputAllGraphs(std::cout, util::GraphOutputFormat::Dot);
+    graph.AppendToLabel("After Solving with " + Config_.ToString());
   }
 
   auto result = ConstructPointsToGraphFromPointerObjectSet(*Set_, *statistics);
@@ -1323,7 +1322,7 @@ Andersen::Analyze(const RvsdgModule & module, util::StatisticsCollector & statis
     if (doubleCheck)
       std::cerr << "Double checking Andersen analysis using naive solving" << std::endl;
 
-    // If double-checking, only use the naive configuration. Otherwise try all configurations
+    // If double-checking, only use the naive configuration. Otherwise, try all configurations
     std::vector<Configuration> configs;
     if (testAllConfigIterations)
       configs = Configuration::GetAllConfigurations();
@@ -1332,7 +1331,7 @@ Andersen::Analyze(const RvsdgModule & module, util::StatisticsCollector & statis
 
     // If testing all configurations, do it as many times as requested.
     // Otherwise, do it at least once
-    const auto iterations = std::max(testAllConfigIterations, size_t(1));
+    const auto iterations = std::max<size_t>(testAllConfigIterations, 1);
 
     for (size_t i = 0; i < iterations; i++)
     {
@@ -1354,10 +1353,21 @@ Andersen::Analyze(const RvsdgModule & module, util::StatisticsCollector & statis
           std::cerr << "Solving with original config: " << Config_.ToString()
                     << " did not produce the same solution as the config " << config.ToString()
                     << std::endl;
+          if (dumpGraphs)
+          {
+            auto & graph = workingCopy.second->DrawSubsetGraph(writer);
+            graph.AppendToLabel("Solved with " + config.ToString());
+            writer.OutputAllGraphs(std::cout, util::GraphOutputFormat::Dot);
+          }
           JLM_UNREACHABLE("Andersen solver double checking uncovered differences!");
         }
       }
     }
+  }
+
+  if (dumpGraphs)
+  {
+    writer.OutputAllGraphs(std::cout, util::GraphOutputFormat::Dot);
   }
 
   // Cleanup

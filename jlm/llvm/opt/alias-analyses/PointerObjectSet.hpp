@@ -85,7 +85,8 @@ class PointerObjectSet final
 #endif
 
     explicit PointerObject(PointerObjectKind kind, bool canPoint)
-        : Kind(kind), CanPointFlag(canPoint)
+        : Kind(kind),
+          CanPointFlag(canPoint)
 #ifndef ANDERSEN_NO_FLAGS
           ,
           HasEscaped(0),
@@ -96,7 +97,7 @@ class PointerObjectSet final
       JLM_ASSERT(kind != PointerObjectKind::COUNT);
 
       // Ensure that certain kinds of PointerObject always CanPoint or never CanPoint
-      switch(kind)
+      switch (kind)
       {
       case PointerObjectKind::ImportMemoryObject:
       case PointerObjectKind::FunctionMemoryObject:
@@ -108,7 +109,8 @@ class PointerObjectSet final
 #endif
         JLM_ASSERT(CanPoint());
         break;
-      default: break;
+      default:
+        break;
       }
 
 #ifndef ANDERSEN_NO_FLAGS
