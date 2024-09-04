@@ -347,22 +347,27 @@ create_testop(
 class TestGraphArgument final : public jlm::rvsdg::argument
 {
 private:
-  TestGraphArgument(jlm::rvsdg::region & region, std::shared_ptr<const jlm::rvsdg::type> type)
-      : jlm::rvsdg::argument(&region, nullptr, type)
+  TestGraphArgument(
+      jlm::rvsdg::region & region,
+      jlm::rvsdg::structural_input * input,
+      std::shared_ptr<const jlm::rvsdg::type> type)
+      : jlm::rvsdg::argument(&region, input, type)
   {}
 
 public:
   TestGraphArgument &
   Copy(jlm::rvsdg::region & region, jlm::rvsdg::structural_input * input) override
   {
-    JLM_ASSERT(input == nullptr);
-    return Create(region, Type());
+    return Create(region, input, Type());
   }
 
   static TestGraphArgument &
-  Create(jlm::rvsdg::region & region, std::shared_ptr<const jlm::rvsdg::type> type)
+  Create(
+      jlm::rvsdg::region & region,
+      jlm::rvsdg::structural_input * input,
+      std::shared_ptr<const jlm::rvsdg::type> type)
   {
-    auto graphArgument = new TestGraphArgument(region, std::move(type));
+    auto graphArgument = new TestGraphArgument(region, input, std::move(type));
     region.append_argument(graphArgument);
     return *graphArgument;
   }
@@ -371,24 +376,39 @@ public:
 class TestGraphResult final : public jlm::rvsdg::result
 {
 private:
-  explicit TestGraphResult(jlm::rvsdg::output & origin)
-      : jlm::rvsdg::result(origin.region(), &origin, nullptr, origin.Type())
+  TestGraphResult(
+      jlm::rvsdg::region & region,
+      jlm::rvsdg::output & origin,
+      jlm::rvsdg::structural_output * output)
+      : jlm::rvsdg::result(&region, &origin, output, origin.Type())
+  {}
+
+  TestGraphResult(jlm::rvsdg::output & origin, jlm::rvsdg::structural_output * output)
+      : TestGraphResult(*origin.region(), origin, output)
   {}
 
 public:
   TestGraphResult &
   Copy(jlm::rvsdg::output & origin, jlm::rvsdg::structural_output * output) override
   {
-    JLM_ASSERT(output == nullptr);
-    return Create(origin);
+    return Create(origin, output);
   }
 
   static TestGraphResult &
-  Create(jlm::rvsdg::output & origin)
+  Create(
+      jlm::rvsdg::region & region,
+      jlm::rvsdg::output & origin,
+      jlm::rvsdg::structural_output * output)
   {
-    auto graphResult = new TestGraphResult(origin);
+    auto graphResult = new TestGraphResult(region, origin, output);
     origin.region()->append_result(graphResult);
     return *graphResult;
+  }
+
+  static TestGraphResult &
+  Create(jlm::rvsdg::output & origin, jlm::rvsdg::structural_output * output)
+  {
+    return Create(*origin.region(), origin, output);
   }
 };
 
