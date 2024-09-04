@@ -1274,6 +1274,8 @@ Andersen::SolveConstraints(
   }
   else
     JLM_UNREACHABLE("Unknown solver");
+
+  std::cerr << "Solving finished" << std::endl;
 }
 
 std::unique_ptr<PointsToGraph>
