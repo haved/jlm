@@ -231,7 +231,7 @@ public:
       config.EnableHybridCycleDetection(false);
       config.EnableLazyCycleDetection(false);
       config.EnableDifferencePropagation(true);
-      config.EnablePreferImplicitPointees(false);
+      config.EnablePreferImplicitPointees(true);
       return config;
     }
 
