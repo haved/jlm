@@ -198,6 +198,10 @@ class Andersen::Statistics final : public util::Statistics
 
   static constexpr const char * NumPIPExplicitPointeesRemoved_ = "#PIPExplicitPointeesRemoved";
 
+  // During solving points-to set statistics
+  static constexpr const char * NumSetInsertionAttempts_ = "#PointsToSetInsertionAttempts";
+  static constexpr const char * NumExplicitPointeesRemoved_ = "#ExplicitPointeesRemoved";
+
   // After solving statistics
   static constexpr const char * NumUnificationRoots_ = "#UnificationRoots";
 
@@ -377,8 +381,8 @@ public:
     if (statistics.NumLazyCycleUnifications)
       AddMeasurement(NumLazyCycleUnifications_, *statistics.NumLazyCycleUnifications);
 
-    if (statistics.NumExplicitPointeesRemoved)
-      AddMeasurement(NumPIPExplicitPointeesRemoved_, *statistics.NumExplicitPointeesRemoved);
+    if (statistics.NumPipExplicitPointeesRemoved)
+      AddMeasurement(NumPIPExplicitPointeesRemoved_, *statistics.NumPipExplicitPointeesRemoved);
   }
 
   void
@@ -390,6 +394,9 @@ public:
   void
   AddStatisticsFromSolution(const PointerObjectSet & set)
   {
+    AddMeasurement(NumSetInsertionAttempts_, set.GetNumSetInsertionAttempts());
+    AddMeasurement(NumExplicitPointeesRemoved_, set.GetNumExplicitPointeesRemoved());
+
     size_t numUnificationRoots = 0;
 
     size_t numCanPointEscaped = 0;
@@ -1313,7 +1320,9 @@ Andersen::Analyze(const RvsdgModule & module, util::StatisticsCollector & statis
     graph.AppendToLabel("After Solving with " + Config_.ToString());
   }
 
+  /*
   auto result = ConstructPointsToGraphFromPointerObjectSet(*Set_, *statistics);
+  */
 
   statistics->StopAndersenStatistics();
   statisticsCollector.CollectDemandedStatistics(std::move(statistics));
@@ -1341,7 +1350,7 @@ Andersen::Analyze(const RvsdgModule & module, util::StatisticsCollector & statis
       {
         // Create a clone of the unsolved pointer object set and constraint set
         auto workingCopy = copy.second->Clone();
-        // These statistics will only contain solving data
+        // These statistPointsTics will only contain solving data
         auto solvingStats = Statistics::Create(module.SourceFileName());
         SolveConstraints(*workingCopy.second, config, *solvingStats);
         solvingStats->AddStatisticsFromSolution(*workingCopy.first);
@@ -1375,7 +1384,9 @@ Andersen::Analyze(const RvsdgModule & module, util::StatisticsCollector & statis
   // Cleanup
   Constraints_.reset();
   Set_.reset();
-  return result;
+
+  // TODO: Return the actual points-to graph
+  return PointsToGraph::Create();
 }
 
 std::unique_ptr<PointsToGraph>

@@ -197,6 +197,12 @@ class PointerObjectSet final
   static constexpr PointerObjectIndex ExternalPointerObject_ = 0;
 #endif
 
+  // How many items have been attempted added to explicit points-to sets
+  size_t numSetInsertionAttempts = 0;
+
+  // Includes explicit pointees removed due to unification, and the remove-method
+  size_t numExplicitPointeesRemoved = 0;
+
   /**
    * Internal helper function for adding PointerObjects, use the Create* methods instead
    */
@@ -513,6 +519,26 @@ public:
    */
   [[nodiscard]] bool
   HasIdenticalSolAs(const PointerObjectSet & other) const;
+
+  /**
+   * @return the number of pointees that have been inserted, or were already inserted,
+   * among all points-to sets in this PointerObjectSet. Includes superset and unification.
+   */
+  [[nodiscard]] size_t
+  GetNumSetInsertionAttempts() const noexcept
+  {
+    return numSetInsertionAttempts;
+  }
+
+  /**
+   * @return the number of pointees that have been removed from points-to sets,
+   * due to either unification, or the RemoveAllPointees() method.
+   */
+  [[nodiscard]] size_t
+  GetNumExplicitPointeesRemoved() const noexcept
+  {
+    return numExplicitPointeesRemoved;
+  }
 };
 
 /**
@@ -926,7 +952,7 @@ public:
      * When Prefer Implicit Pointees is enabled, and a node's pointees can be tracked fully
      * implicitly, its set of explicit pointees is cleared.
      */
-    std::optional<size_t> NumExplicitPointeesRemoved;
+    std::optional<size_t> NumPipExplicitPointeesRemoved;
   };
 
   explicit PointerObjectConstraintSet(PointerObjectSet & set)

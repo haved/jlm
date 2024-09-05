@@ -362,9 +362,14 @@ PointerObjectSet::UnifyPointerObjects(PointerObjectIndex object1, PointerObjectI
   // Perform the actual unification
   PointerObjectParents_[oldRoot] = newRoot;
 
+  auto & oldRootPointees = PointsToSets_[oldRoot];
+
+  numSetInsertionAttempts += oldRootPointees.Size();
+  numExplicitPointeesRemoved += oldRootPointees.Size();
+
   // Copy over all pointees, and clean the pointee set from the old root
-  PointsToSets_[newRoot].UnionWith(PointsToSets_[oldRoot]);
-  PointsToSets_[oldRoot].Clear();
+  PointsToSets_[newRoot].UnionWith(oldRootPointees);
+  oldRootPointees.Clear();
 
   return newRoot;
 }
@@ -386,6 +391,8 @@ PointerObjectSet::AddToPointsToSet(PointerObjectIndex pointer, PointerObjectInde
 
   const auto pointerRoot = GetUnificationRoot(pointer);
 
+  numSetInsertionAttempts++;
+
   return PointsToSets_[pointerRoot].Insert(pointee);
 }
 
@@ -405,6 +412,8 @@ PointerObjectSet::PropagateNewPointees(
 
   auto & P_super = PointsToSets_[supersetRoot];
   auto & P_sub = PointsToSets_[subsetRoot];
+
+  numSetInsertionAttempts += P_sub.Size();
 
   bool modified = false;
   for (PointerObjectIndex pointee : P_sub.Items())
@@ -452,6 +461,7 @@ void
 PointerObjectSet::RemoveAllPointees(PointerObjectIndex index)
 {
   auto root = GetUnificationRoot(index);
+  numExplicitPointeesRemoved += PointsToSets_[root].Size();
   PointsToSets_[root].Clear();
 }
 
@@ -1690,7 +1700,7 @@ PointerObjectConstraintSet::RunWorklistSolver(WorklistStatistics & statistics)
     statistics.NumHybridCycleUnifications = 0;
 
   if constexpr (EnablePreferImplicitPointees)
-    statistics.NumExplicitPointeesRemoved = 0;
+    statistics.NumPipExplicitPointeesRemoved = 0;
 
   // The worklist, initialized with every unification root
   Worklist worklist;
@@ -1943,7 +1953,7 @@ PointerObjectConstraintSet::RunWorklistSolver(WorklistStatistics & statistics)
     // If this node can track all pointees implicitly, remove its explicit nodes
     if (EnablePreferImplicitPointees && Set_.CanTrackPointeesImplicitly(node))
     {
-      *(statistics.NumExplicitPointeesRemoved) += Set_.GetPointsToSet(node).Size();
+      *(statistics.NumPipExplicitPointeesRemoved) += Set_.GetPointsToSet(node).Size();
       // This also causes newPointees to become empty
       RemoveAllPointees(node);
     }

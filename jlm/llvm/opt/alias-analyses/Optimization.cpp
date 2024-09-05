@@ -27,6 +27,7 @@ AliasAnalysisStateEncoder<AliasAnalysisPass, MemoryNodeProviderPass>::run(
   AliasAnalysisPass aaPass;
   auto pointsToGraph = aaPass.Analyze(rvsdgModule, statisticsCollector);
   /*
+  TODO: Add encoding back in
   auto provisioning =
       MemoryNodeProviderPass::Create(rvsdgModule, *pointsToGraph, statisticsCollector);
 
