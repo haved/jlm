@@ -295,8 +295,7 @@ private:
 };
 
 /**
- * A fake worklist that only holds a single bit of information:
- *  "Has any item been pushed since the last reset?"
+ * A fake worklist that only remembers which work items have been pushed.
  * Used to implement the Topological worklist policy, which is not technically a worklist policy
  * @tparam T the type of the work items.
  * @see Worklist
@@ -312,7 +311,7 @@ public:
   [[nodiscard]] bool
   HasMoreWorkItems() const noexcept override
   {
-    JLM_UNREACHABLE("Dummy worklist");
+    return !PushedItems_.IsEmpty();
   }
 
   T
@@ -322,32 +321,25 @@ public:
   }
 
   void
-  PushWorkItem(T item [[maybe_unused]]) override
+  PushWorkItem(T item) override
   {
-    PushMade_ = true;
+    PushedItems_.Insert(item);
   }
 
-  /**
-   * @return true if the PushWorkItem method has been called since the last time
-   * ResetPush() was called.
-   */
   [[nodiscard]] bool
-  HasPushBeenMade() const noexcept
+  HasWorkItem(T item) const
   {
-    return PushMade_;
+    return PushedItems_.Contains(item);
   }
 
-  /**
-   * Makes the dummy worklist forget about being pushed to.
-   */
   void
-  ResetPush()
+  RemoveWorkItem(T item)
   {
-    PushMade_ = false;
+    PushedItems_.Remove(item);
   }
 
 private:
-  bool PushMade_ = false;
+  util::HashSet<T> PushedItems_;
 };
 
 }

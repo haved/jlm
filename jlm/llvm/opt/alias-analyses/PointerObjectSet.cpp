@@ -2114,10 +2114,9 @@ PointerObjectConstraintSet::RunWorklistSolver(WorklistStatistics & statistics)
 
     statistics.NumTopologicalWorklistSweeps = 0;
 
-    while (worklist.HasPushBeenMade())
+    while (worklist.HasMoreWorkItems())
     {
       (*statistics.NumTopologicalWorklistSweeps)++;
-      worklist.ResetPush();
 
       // First perform a topological sort of the entire subset graph, with respect to simple edges
       util::FindStronglyConnectedComponents<PointerObjectIndex>(
@@ -2139,13 +2138,21 @@ PointerObjectConstraintSet::RunWorklistSolver(WorklistStatistics & statistics)
           {
             // This node is in a cycle with the next node, unify them
             nextNode = UnifyPointerObjects(node, nextNode);
+            // Make sure the new root is visited
+            worklist.RemoveWorkItem(node);
+            worklist.PushWorkItem(nextNode);
             continue;
           }
         }
 
-        // Otherwise handle the work item (only unification roots)
-        if (Set_.IsUnificationRoot(node))
-          HandleWorkItem(node);
+        // Otherwise handle the work item
+        while(worklist.HasWorkItem(node))
+        {
+          // Remove it, but be prepared to revisit it immediately if needed
+          worklist.RemoveWorkItem(node);
+          if (Set_.IsUnificationRoot(node))
+            HandleWorkItem(node);
+        }
       }
     }
   }

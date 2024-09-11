@@ -1320,9 +1320,7 @@ Andersen::Analyze(const RvsdgModule & module, util::StatisticsCollector & statis
     graph.AppendToLabel("After Solving with " + Config_.ToString());
   }
 
-  /*
-  auto result = ConstructPointsToGraphFromPointerObjectSet(*Set_, *statistics);
-  */
+  // auto result = ConstructPointsToGraphFromPointerObjectSet(*Set_, *statistics);
 
   statistics->StopAndersenStatistics();
   statisticsCollector.CollectDemandedStatistics(std::move(statistics));
@@ -1386,6 +1384,7 @@ Andersen::Analyze(const RvsdgModule & module, util::StatisticsCollector & statis
   Set_.reset();
 
   // TODO: Return the actual points-to graph
+  // return result;
   return PointsToGraph::Create();
 }
 

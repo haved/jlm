@@ -138,15 +138,19 @@ static int
 TestObserverWorklist()
 {
   jlm::util::ObserverWorklist<size_t> wl;
-  assert(!wl.HasPushBeenMade());
+  assert(!wl.HasMoreWorkItems());
+  assert(!wl.HasWorkItem(7));
   wl.PushWorkItem(7);
-  assert(wl.HasPushBeenMade());
-  wl.ResetPush();
-  assert(!wl.HasPushBeenMade());
-  wl.ResetPush();
-  assert(!wl.HasPushBeenMade());
-  wl.PushWorkItem(7);
-  assert(wl.HasPushBeenMade());
+  assert(wl.HasMoreWorkItems());
+  assert(wl.HasWorkItem(7));
+  wl.PushWorkItem(5);
+  assert(wl.HasWorkItem(5));
+  assert(wl.HasWorkItem(7));
+  wl.RemoveWorkItem(7);
+  assert(!wl.HasWorkItem(7));
+  assert(wl.HasWorkItem(5));
+  wl.RemoveWorkItem(5);
+  assert(!wl.HasMoreWorkItems());
 
   return 0;
 }
