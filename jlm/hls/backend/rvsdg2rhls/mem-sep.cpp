@@ -39,7 +39,7 @@ mem_sep_argument(llvm::RvsdgModule & rm)
 }
 
 // from MemoryStateEncoder.cpp
-jlm::rvsdg::argument *
+rvsdg::RegionArgument *
 GetMemoryStateArgument(const llvm::lambda::node & lambda)
 {
   auto subregion = lambda.subregion();
@@ -52,7 +52,7 @@ GetMemoryStateArgument(const llvm::lambda::node & lambda)
   return nullptr;
 }
 
-jlm::rvsdg::result *
+rvsdg::RegionResult *
 GetMemoryStateResult(const llvm::lambda::node & lambda)
 {
   auto subregion = lambda.subregion();
@@ -101,7 +101,7 @@ route_through(jlm::rvsdg::region * target, jlm::rvsdg::output * response)
   {
     auto parent_response = route_through(target->node()->region(), response);
     auto parrent_user = *parent_response->begin();
-    if (auto gn = dynamic_cast<jlm::rvsdg::gamma_node *>(target->node()))
+    if (auto gn = dynamic_cast<rvsdg::GammaNode *>(target->node()))
     {
       auto ip = gn->add_entryvar(parent_response);
       std::vector<jlm::rvsdg::output *> vec;
@@ -170,7 +170,7 @@ mem_sep_independent(jlm::rvsdg::region * region)
   }
 }
 
-jlm::rvsdg::result *
+rvsdg::RegionResult *
 trace_edge(
     jlm::rvsdg::output * common_edge,
     jlm::rvsdg::output * new_edge,
@@ -188,12 +188,12 @@ trace_edge(
     JLM_ASSERT(new_edge->nusers() == 1);
     auto user = *common_edge->begin();
     auto new_next = *new_edge->begin();
-    if (auto res = dynamic_cast<jlm::rvsdg::result *>(user))
+    if (auto res = dynamic_cast<rvsdg::RegionResult *>(user))
     {
       // end of region reached
       return res;
     }
-    else if (auto gi = dynamic_cast<jlm::rvsdg::gamma_input *>(user))
+    else if (auto gi = dynamic_cast<rvsdg::GammaInput *>(user))
     {
       auto gn = gi->node();
       auto ip = gn->add_entryvar(new_edge);

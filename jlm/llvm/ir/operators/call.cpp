@@ -21,7 +21,7 @@ static rvsdg::input *
 invariantInput(const rvsdg::output & output, InvariantOutputMap & invariantOutputs);
 
 static rvsdg::structural_input *
-invariantInput(const rvsdg::gamma_output & output, InvariantOutputMap & invariantOutputs)
+invariantInput(const rvsdg::GammaOutput & output, InvariantOutputMap & invariantOutputs)
 {
   size_t n;
   rvsdg::structural_input * input = nullptr;
@@ -32,7 +32,7 @@ invariantInput(const rvsdg::gamma_output & output, InvariantOutputMap & invarian
     bool resultIsInvariant = false;
     while (true)
     {
-      if (auto argument = dynamic_cast<const rvsdg::argument *>(origin))
+      if (auto argument = dynamic_cast<const rvsdg::RegionArgument *>(origin))
       {
         resultIsInvariant = true;
         input = argument->input();
@@ -106,7 +106,7 @@ invariantInput(const rvsdg::output & output, InvariantOutputMap & invariantOutpu
     return invariantInput(*thetaInput->output(), invariantOutputs);
   }
 
-  if (auto gammaOutput = dynamic_cast<const rvsdg::gamma_output *>(&output))
+  if (auto gammaOutput = dynamic_cast<const rvsdg::GammaOutput *>(&output))
     return invariantInput(*gammaOutput, invariantOutputs);
 
   return nullptr;
@@ -176,12 +176,12 @@ CallNode::TraceFunctionInput(const CallNode & callNode)
 
     if (is<lambda::cvargument>(origin))
     {
-      auto argument = util::AssertedCast<const rvsdg::argument>(origin);
+      auto argument = util::AssertedCast<const rvsdg::RegionArgument>(origin);
       origin = argument->input()->origin();
       continue;
     }
 
-    if (auto gammaOutput = dynamic_cast<const rvsdg::gamma_output *>(origin))
+    if (auto gammaOutput = dynamic_cast<const rvsdg::GammaOutput *>(origin))
     {
       if (auto input = invariantInput(*gammaOutput))
       {
@@ -246,7 +246,7 @@ CallNode::ClassifyCall(const CallNode & callNode)
     return CallTypeClassifier::CreateNonRecursiveDirectCallClassifier(*lambdaOutput);
   }
 
-  if (auto argument = dynamic_cast<rvsdg::argument *>(output))
+  if (auto argument = dynamic_cast<rvsdg::RegionArgument *>(output))
   {
     if (is<phi::rvargument>(argument))
     {

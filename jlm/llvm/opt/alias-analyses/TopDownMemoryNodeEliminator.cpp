@@ -502,7 +502,7 @@ TopDownMemoryNodeEliminator::EliminateTopDownRegion(rvsdg::region & region)
 {
   auto isLambdaSubregion = rvsdg::is<lambda::operation>(region.node());
   auto isThetaSubregion = rvsdg::is<rvsdg::theta_op>(region.node());
-  auto isGammaSubregion = rvsdg::is<rvsdg::gamma_op>(region.node());
+  auto isGammaSubregion = rvsdg::is<rvsdg::GammaOperation>(region.node());
   JLM_ASSERT(isLambdaSubregion || isThetaSubregion || isGammaSubregion);
 
   // Process the intra-procedural nodes top-down.
@@ -530,7 +530,7 @@ void
 TopDownMemoryNodeEliminator::EliminateTopDownStructuralNode(
     const rvsdg::structural_node & structuralNode)
 {
-  if (auto gammaNode = dynamic_cast<const rvsdg::gamma_node *>(&structuralNode))
+  if (auto gammaNode = dynamic_cast<const rvsdg::GammaNode *>(&structuralNode))
   {
     EliminateTopDownGamma(*gammaNode);
   }
@@ -657,10 +657,10 @@ TopDownMemoryNodeEliminator::EliminateTopDownPhi(const phi::node & phiNode)
 }
 
 void
-TopDownMemoryNodeEliminator::EliminateTopDownGamma(const rvsdg::gamma_node & gammaNode)
+TopDownMemoryNodeEliminator::EliminateTopDownGamma(const rvsdg::GammaNode & gammaNode)
 {
   auto addSubregionLiveAndEntryNodes =
-      [](const rvsdg::gamma_node & gammaNode, TopDownMemoryNodeEliminator::Context & context)
+      [](const rvsdg::GammaNode & gammaNode, TopDownMemoryNodeEliminator::Context & context)
   {
     auto & gammaRegion = *gammaNode.region();
     auto & seedProvisioning = context.GetSeedProvisioning();
@@ -679,7 +679,7 @@ TopDownMemoryNodeEliminator::EliminateTopDownGamma(const rvsdg::gamma_node & gam
     }
   };
 
-  auto eliminateTopDownForSubregions = [&](const rvsdg::gamma_node & gammaNode)
+  auto eliminateTopDownForSubregions = [&](const rvsdg::GammaNode & gammaNode)
   {
     for (size_t n = 0; n < gammaNode.nsubregions(); n++)
     {
@@ -689,7 +689,7 @@ TopDownMemoryNodeEliminator::EliminateTopDownGamma(const rvsdg::gamma_node & gam
   };
 
   auto addSubregionExitNodes =
-      [](const rvsdg::gamma_node & gammaNode, TopDownMemoryNodeEliminator::Context & context)
+      [](const rvsdg::GammaNode & gammaNode, TopDownMemoryNodeEliminator::Context & context)
   {
     auto & provisioning = context.GetProvisioning();
 
@@ -702,7 +702,7 @@ TopDownMemoryNodeEliminator::EliminateTopDownGamma(const rvsdg::gamma_node & gam
   };
 
   auto updateGammaRegionLiveNodes =
-      [](const rvsdg::gamma_node & gammaNode, TopDownMemoryNodeEliminator::Context & context)
+      [](const rvsdg::GammaNode & gammaNode, TopDownMemoryNodeEliminator::Context & context)
   {
     auto & gammaRegion = *gammaNode.region();
     auto & provisioning = context.GetProvisioning();
@@ -937,7 +937,7 @@ TopDownMemoryNodeEliminator::CheckInvariants(
         auto subregion = phiNode->subregion();
         collectRegionsAndCalls(*subregion, regions, callNodes);
       }
-      else if (auto gammaNode = dynamic_cast<const rvsdg::gamma_node *>(&node))
+      else if (auto gammaNode = dynamic_cast<const rvsdg::GammaNode *>(&node))
       {
         for (size_t n = 0; n < gammaNode->nsubregions(); n++)
         {

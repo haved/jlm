@@ -84,7 +84,7 @@ test_gamma()
   auto u1 = jlm::tests::create_testop(graph.root(), { x }, { vt })[0];
   auto u2 = jlm::tests::create_testop(graph.root(), { x }, { vt })[0];
 
-  auto gamma = jlm::rvsdg::gamma_node::create(c, 2);
+  auto gamma = jlm::rvsdg::GammaNode::create(c, 2);
 
   auto ev1 = gamma->add_entryvar(u1);
   auto ev2 = gamma->add_entryvar(u2);
@@ -122,8 +122,10 @@ test_gamma()
   assert(subregion1->result(0)->origin() == subregion1->result(1)->origin());
   assert(graph.root()->result(0)->origin() == graph.root()->result(1)->origin());
 
-  auto argument0 = dynamic_cast<const jlm::rvsdg::argument *>(subregion0->result(6)->origin());
-  auto argument1 = dynamic_cast<const jlm::rvsdg::argument *>(subregion1->result(6)->origin());
+  auto argument0 =
+      dynamic_cast<const jlm::rvsdg::RegionArgument *>(subregion0->result(6)->origin());
+  auto argument1 =
+      dynamic_cast<const jlm::rvsdg::RegionArgument *>(subregion1->result(6)->origin());
   assert(argument0->input() == argument1->input());
 }
 

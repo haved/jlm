@@ -94,7 +94,7 @@ InvariantValueRedirection::RedirectInRootRegion(rvsdg::graph & rvsdg)
 void
 InvariantValueRedirection::RedirectInRegion(rvsdg::region & region)
 {
-  auto isGammaNode = is<rvsdg::gamma_op>(region.node());
+  auto isGammaNode = is<rvsdg::GammaOperation>(region.node());
   auto isThetaNode = is<rvsdg::theta_op>(region.node());
   auto isLambdaNode = is<lambda::operation>(region.node());
   JLM_ASSERT(isGammaNode || isThetaNode || isLambdaNode);
@@ -103,7 +103,7 @@ InvariantValueRedirection::RedirectInRegion(rvsdg::region & region)
   // it is irrelevant in which order we handle the nodes.
   for (auto & node : region.nodes)
   {
-    if (auto gammaNode = dynamic_cast<rvsdg::gamma_node *>(&node))
+    if (auto gammaNode = dynamic_cast<rvsdg::GammaNode *>(&node))
     {
       // Ensure we redirect invariant values of all nodes in the gamma subregions first, otherwise
       // we might not be able to redirect some of the gamma outputs.
@@ -127,7 +127,7 @@ InvariantValueRedirection::RedirectInRegion(rvsdg::region & region)
 void
 InvariantValueRedirection::RedirectInSubregions(rvsdg::structural_node & structuralNode)
 {
-  auto isGammaNode = is<rvsdg::gamma_op>(&structuralNode);
+  auto isGammaNode = is<rvsdg::GammaOperation>(&structuralNode);
   auto isThetaNode = is<rvsdg::theta_op>(&structuralNode);
   JLM_ASSERT(isGammaNode || isThetaNode);
 
@@ -138,7 +138,7 @@ InvariantValueRedirection::RedirectInSubregions(rvsdg::structural_node & structu
 }
 
 void
-InvariantValueRedirection::RedirectGammaOutputs(rvsdg::gamma_node & gammaNode)
+InvariantValueRedirection::RedirectGammaOutputs(rvsdg::GammaNode & gammaNode)
 {
   for (auto it = gammaNode.begin_exitvar(); it != gammaNode.end_exitvar(); it++)
   {

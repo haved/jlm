@@ -1132,7 +1132,7 @@ ExternalCallTest1::SetupRvsdg()
     return &GraphImport::Create(*rvsdg, functionGType, "g", linkage::external_linkage);
   };
 
-  auto SetupFunctionF = [&](jlm::rvsdg::argument * functionG)
+  auto SetupFunctionF = [&](jlm::rvsdg::RegionArgument * functionG)
   {
     auto pointerType = PointerType::Create();
     auto iOStateType = iostatetype::Create();
@@ -1320,7 +1320,7 @@ GammaTest::SetupRvsdg()
   auto biteq = jlm::rvsdg::biteq_op::create(32, fct->fctargument(0), zero);
   auto predicate = jlm::rvsdg::match(1, { { 0, 1 } }, 0, 2, biteq);
 
-  auto gammanode = jlm::rvsdg::gamma_node::create(predicate, 2);
+  auto gammanode = jlm::rvsdg::GammaNode::create(predicate, 2);
   auto p1ev = gammanode->add_entryvar(fct->fctargument(1));
   auto p2ev = gammanode->add_entryvar(fct->fctargument(2));
   auto p3ev = gammanode->add_entryvar(fct->fctargument(3));
@@ -1369,7 +1369,7 @@ GammaTest2::SetupRvsdg()
                          rvsdg::output * zAddress,
                          rvsdg::output * memoryState)
     {
-      auto gammaNode = rvsdg::gamma_node::create(predicate, 2);
+      auto gammaNode = rvsdg::GammaNode::create(predicate, 2);
 
       auto gammaInputX = gammaNode->add_entryvar(xAddress);
       auto gammaInputY = gammaNode->add_entryvar(yAddress);
@@ -2031,7 +2031,7 @@ PhiTest1::SetupRvsdg()
     auto bitult = jlm::rvsdg::bitult_op::create(64, valueArgument, two);
     auto predicate = jlm::rvsdg::match(1, { { 0, 1 } }, 0, 2, bitult);
 
-    auto gammaNode = jlm::rvsdg::gamma_node::create(predicate, 2);
+    auto gammaNode = jlm::rvsdg::GammaNode::create(predicate, 2);
     auto nev = gammaNode->add_entryvar(valueArgument);
     auto resultev = gammaNode->add_entryvar(pointerArgument);
     auto fibev = gammaNode->add_entryvar(ctxVarFib);
@@ -2790,7 +2790,7 @@ EscapedMemoryTest2::SetupRvsdg()
     return std::make_tuple(lambdaOutput, jlm::rvsdg::node_output::node(mallocResults[0]));
   };
 
-  auto SetupCallExternalFunction1 = [&](jlm::rvsdg::argument * externalFunction1Argument)
+  auto SetupCallExternalFunction1 = [&](jlm::rvsdg::RegionArgument * externalFunction1Argument)
   {
     auto iOStateType = iostatetype::Create();
     auto memoryStateType = MemoryStateType::Create();
@@ -2826,7 +2826,7 @@ EscapedMemoryTest2::SetupRvsdg()
     return std::make_tuple(lambdaOutput, &call, jlm::rvsdg::node_output::node(mallocResults[0]));
   };
 
-  auto SetupCallExternalFunction2 = [&](jlm::rvsdg::argument * externalFunction2Argument)
+  auto SetupCallExternalFunction2 = [&](jlm::rvsdg::RegionArgument * externalFunction2Argument)
   {
     auto iOStateType = iostatetype::Create();
     auto memoryStateType = MemoryStateType::Create();
@@ -2942,7 +2942,7 @@ EscapedMemoryTest3::SetupRvsdg()
     return deltaOutput;
   };
 
-  auto SetupTestFunction = [&](jlm::rvsdg::argument * externalFunctionArgument)
+  auto SetupTestFunction = [&](jlm::rvsdg::RegionArgument * externalFunctionArgument)
   {
     auto iOStateType = iostatetype::Create();
     auto memoryStateType = MemoryStateType::Create();
@@ -3893,7 +3893,7 @@ VariadicFunctionTest2::SetupRvsdg()
     auto icmpResult = rvsdg::bitult_op::create(32, loadResults[0], fortyOne);
     auto matchResult = rvsdg::match_op::Create(*icmpResult, { { 1, 1 } }, 0, 2);
 
-    auto gammaNode = rvsdg::gamma_node::create(matchResult, 2);
+    auto gammaNode = rvsdg::GammaNode::create(matchResult, 2);
     auto gammaVaAddress = gammaNode->add_entryvar(allocaResults[0]);
     auto gammaLoadResult = gammaNode->add_entryvar(loadResults[0]);
     auto gammaMemoryState = gammaNode->add_entryvar(loadResults[1]);

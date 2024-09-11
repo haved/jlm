@@ -188,7 +188,7 @@ TestCallTypeClassifierNonRecursiveDirectCall()
 
   auto SetupFunctionF = [&](lambda::output * g)
   {
-    auto SetupOuterTheta = [](jlm::rvsdg::region * region, jlm::rvsdg::argument * functionG)
+    auto SetupOuterTheta = [](jlm::rvsdg::region * region, jlm::rvsdg::RegionArgument * functionG)
     {
       auto outerTheta = jlm::rvsdg::theta_node::create(region);
       auto otf = outerTheta->add_loopvar(functionG);
@@ -197,7 +197,7 @@ TestCallTypeClassifierNonRecursiveDirectCall()
       auto itf = innerTheta->add_loopvar(otf->argument());
 
       auto predicate = jlm::rvsdg::control_false(innerTheta->subregion());
-      auto gamma = jlm::rvsdg::gamma_node::create(predicate, 2);
+      auto gamma = jlm::rvsdg::GammaNode::create(predicate, 2);
       auto ev = gamma->add_entryvar(itf->argument());
       auto xv = gamma->add_exitvar({ ev->argument(0), ev->argument(1) });
 
@@ -282,12 +282,12 @@ TestCallTypeClassifierNonRecursiveDirectCallTheta()
   auto SetupFunctionF = [&](lambda::output * g)
   {
     auto SetupOuterTheta = [&](jlm::rvsdg::region * region,
-                               jlm::rvsdg::argument * g,
+                               jlm::rvsdg::RegionArgument * g,
                                jlm::rvsdg::output * value,
                                jlm::rvsdg::output * iOState,
                                jlm::rvsdg::output * memoryState)
     {
-      auto SetupInnerTheta = [&](jlm::rvsdg::region * region, jlm::rvsdg::argument * g)
+      auto SetupInnerTheta = [&](jlm::rvsdg::region * region, jlm::rvsdg::RegionArgument * g)
       {
         auto innerTheta = jlm::rvsdg::theta_node::create(region);
         auto thetaOutputG = innerTheta->add_loopvar(g);
@@ -402,7 +402,7 @@ TestCallTypeClassifierRecursiveDirectCall()
     auto bitult = jlm::rvsdg::bitult_op::create(64, valueArgument, two);
     auto predicate = jlm::rvsdg::match(1, { { 0, 1 } }, 0, 2, bitult);
 
-    auto gammaNode = jlm::rvsdg::gamma_node::create(predicate, 2);
+    auto gammaNode = jlm::rvsdg::GammaNode::create(predicate, 2);
     auto nev = gammaNode->add_entryvar(valueArgument);
     auto resultev = gammaNode->add_entryvar(pointerArgument);
     auto fibev = gammaNode->add_entryvar(ctxVarFib);

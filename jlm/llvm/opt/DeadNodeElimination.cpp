@@ -198,7 +198,7 @@ DeadNodeElimination::MarkOutput(const jlm::rvsdg::output & output)
     return;
   }
 
-  if (auto gammaOutput = dynamic_cast<const rvsdg::gamma_output *>(&output))
+  if (auto gammaOutput = dynamic_cast<const rvsdg::GammaOutput *>(&output))
   {
     MarkOutput(*gammaOutput->node()->predicate()->origin());
     for (const auto & result : gammaOutput->results)
@@ -344,7 +344,7 @@ DeadNodeElimination::SweepStructuralNode(jlm::rvsdg::structural_node & node) con
 {
   auto sweepGamma = [](auto & d, auto & n)
   {
-    d.SweepGamma(*util::AssertedCast<jlm::rvsdg::gamma_node>(&n));
+    d.SweepGamma(*util::AssertedCast<rvsdg::GammaNode>(&n));
   };
   auto sweepTheta = [](auto & d, auto & n)
   {
@@ -366,7 +366,7 @@ DeadNodeElimination::SweepStructuralNode(jlm::rvsdg::structural_node & node) con
   static std::unordered_map<
       std::type_index,
       std::function<void(const DeadNodeElimination &, jlm::rvsdg::structural_node &)>>
-      map({ { typeid(jlm::rvsdg::gamma_op), sweepGamma },
+      map({ { typeid(rvsdg::GammaOperation), sweepGamma },
             { typeid(jlm::rvsdg::theta_op), sweepTheta },
             { typeid(lambda::operation), sweepLambda },
             { typeid(phi::operation), sweepPhi },
@@ -378,7 +378,7 @@ DeadNodeElimination::SweepStructuralNode(jlm::rvsdg::structural_node & node) con
 }
 
 void
-DeadNodeElimination::SweepGamma(jlm::rvsdg::gamma_node & gammaNode) const
+DeadNodeElimination::SweepGamma(rvsdg::GammaNode & gammaNode) const
 {
   // Remove dead outputs and results
   for (size_t n = gammaNode.noutputs() - 1; n != static_cast<size_t>(-1); n--)
@@ -460,7 +460,7 @@ DeadNodeElimination::SweepLambda(lambda::node & lambdaNode) const
 void
 DeadNodeElimination::SweepPhi(phi::node & phiNode) const
 {
-  util::HashSet<const rvsdg::argument *> deadRecursionArguments;
+  util::HashSet<const rvsdg::RegionArgument *> deadRecursionArguments;
 
   auto isDeadOutput = [&](const phi::rvoutput & output)
   {
@@ -479,7 +479,7 @@ DeadNodeElimination::SweepPhi(phi::node & phiNode) const
 
   SweepRegion(*phiNode.subregion());
 
-  auto isDeadArgument = [&](const rvsdg::argument & argument)
+  auto isDeadArgument = [&](const rvsdg::RegionArgument & argument)
   {
     if (argument.input())
     {
