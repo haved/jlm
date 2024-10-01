@@ -59,10 +59,10 @@ public:
   }
 
 private:
-  static inline std::vector<std::shared_ptr<const rvsdg::type>>
+  static inline std::vector<std::shared_ptr<const rvsdg::Type>>
   create_srctypes(const FunctionType & functionType)
   {
-    std::vector<std::shared_ptr<const rvsdg::type>> types({ PointerType::Create() });
+    std::vector<std::shared_ptr<const rvsdg::Type>> types({ PointerType::Create() });
     for (auto & argumentType : functionType.Arguments())
       types.emplace_back(argumentType);
 
@@ -70,7 +70,7 @@ private:
   }
 
   static void
-  CheckFunctionInputType(const jlm::rvsdg::type & type)
+  CheckFunctionInputType(const jlm::rvsdg::Type & type)
   {
     if (!is<PointerType>(type))
       throw jlm::util::error("Expected pointer type.");
@@ -256,7 +256,7 @@ class CallNode final : public jlm::rvsdg::simple_node
 {
 private:
   CallNode(
-      jlm::rvsdg::region & region,
+      rvsdg::Region & region,
       const CallOperation & operation,
       const std::vector<jlm::rvsdg::output *> & operands)
       : simple_node(&region, operation, operands)
@@ -416,7 +416,7 @@ public:
   }
 
   rvsdg::node *
-  copy(rvsdg::region * region, const std::vector<rvsdg::output *> & operands) const override;
+  copy(rvsdg::Region * region, const std::vector<rvsdg::output *> & operands) const override;
 
   static std::vector<jlm::rvsdg::output *>
   Create(
@@ -429,7 +429,7 @@ public:
 
   static std::vector<jlm::rvsdg::output *>
   Create(
-      rvsdg::region & region,
+      rvsdg::Region & region,
       const CallOperation & callOperation,
       const std::vector<rvsdg::output *> & operands)
   {
@@ -438,7 +438,7 @@ public:
 
   static CallNode &
   CreateNode(
-      rvsdg::region & region,
+      rvsdg::Region & region,
       const CallOperation & callOperation,
       const std::vector<rvsdg::output *> & operands)
   {
@@ -488,7 +488,7 @@ public:
 
 private:
   static void
-  CheckFunctionInputType(const jlm::rvsdg::type & type)
+  CheckFunctionInputType(const jlm::rvsdg::Type & type)
   {
     if (!is<PointerType>(type))
       throw jlm::util::error("Expected pointer type.");

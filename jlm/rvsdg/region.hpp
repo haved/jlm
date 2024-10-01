@@ -12,6 +12,7 @@
 
 #include <jlm/rvsdg/node.hpp>
 #include <jlm/util/common.hpp>
+#include <jlm/util/iterator_range.hpp>
 
 namespace jlm::util
 {
@@ -29,7 +30,7 @@ class structural_input;
 class structural_node;
 class structural_op;
 class structural_output;
-class substitution_map;
+class SubstitutionMap;
 
 /**
  * \brief Represents the argument of a region.
@@ -51,9 +52,9 @@ public:
 
 protected:
   RegionArgument(
-      rvsdg::region * region,
+      rvsdg::Region * region,
       structural_input * input,
-      std::shared_ptr<const rvsdg::type> type);
+      std::shared_ptr<const rvsdg::Type> type);
 
 public:
   RegionArgument(const RegionArgument &) = delete;
@@ -81,7 +82,7 @@ public:
    * @return A reference to the copied argument.
    */
   virtual RegionArgument &
-  Copy(rvsdg::region & region, structural_input * input) = 0;
+  Copy(rvsdg::Region & region, structural_input * input) = 0;
 
 private:
   structural_input * input_;
@@ -108,10 +109,10 @@ public:
 
 protected:
   RegionResult(
-      rvsdg::region * region,
+      rvsdg::Region * region,
       rvsdg::output * origin,
       structural_output * output,
-      std::shared_ptr<const rvsdg::type> type);
+      std::shared_ptr<const rvsdg::Type> type);
 
 public:
   RegionResult(const RegionResult &) = delete;
@@ -146,7 +147,21 @@ private:
   structural_output * output_;
 };
 
-class region
+/**
+ * \brief Represent acyclic RVSDG subgraphs
+ *
+ * Regions represent acyclic RVSDG subgraphs and are instantiated with an index in \ref
+ * structural_node%s. Each region has \ref RegionArgument%s and \ref RegionResult%s that represent
+ * the values at the beginning and end of the acyclic graph, respectively. In addition, each region
+ * keeps track of the following properties:
+ *
+ * 1. The nodes of the acyclic subgraph. They represent the computations performed in the region.
+ * 2. The top nodes of the acyclic subgraph. These are all nodes of the region that have no inputs,
+ * i.e., constants.
+ * 3. The bottom nodes of the acyclic subgraph. These are all nodes of the region that have no
+ * users, i.e. that are dead. See \ref output::IsDead() for more information.
+ */
+class Region
 {
   typedef jlm::util::intrusive_list<jlm::rvsdg::node, jlm::rvsdg::node::region_node_list_accessor>
       region_nodes_list;
@@ -159,12 +174,128 @@ class region
       intrusive_list<jlm::rvsdg::node, jlm::rvsdg::node::region_bottom_node_list_accessor>
           region_bottom_node_list;
 
+  using RegionArgumentIterator = std::vector<RegionArgument *>::iterator;
+  using RegionArgumentConstIterator = std::vector<RegionArgument *>::const_iterator;
+  using RegionArgumentRange = util::iterator_range<RegionArgumentIterator>;
+  using RegionArgumentConstRange = util::iterator_range<RegionArgumentConstIterator>;
+
+  using RegionResultIterator = std::vector<RegionResult *>::iterator;
+  using RegionResultConstIterator = std::vector<RegionResult *>::const_iterator;
+  using RegionResultRange = util::iterator_range<RegionResultIterator>;
+  using RegionResultConstRange = util::iterator_range<RegionResultConstIterator>;
+
+  using TopNodeIterator = region_top_node_list::iterator;
+  using TopNodeConstIterator = region_top_node_list::const_iterator;
+  using TopNodeRange = util::iterator_range<TopNodeIterator>;
+  using TopNodeConstRange = util::iterator_range<TopNodeConstIterator>;
+
+  using NodeIterator = region_nodes_list::iterator;
+  using NodeConstIterator = region_nodes_list::const_iterator;
+  using NodeRange = util::iterator_range<NodeIterator>;
+  using NodeConstRange = util::iterator_range<NodeConstIterator>;
+
+  using BottomNodeIterator = region_bottom_node_list::iterator;
+  using BottomNodeConstIterator = region_bottom_node_list::const_iterator;
+  using BottomNodeRange = util::iterator_range<BottomNodeIterator>;
+  using BottomNodeConstRange = util::iterator_range<BottomNodeConstIterator>;
+
 public:
-  ~region();
+  ~Region() noexcept;
 
-  region(jlm::rvsdg::region * parent, jlm::rvsdg::graph * graph);
+  Region(rvsdg::Region * parent, jlm::rvsdg::graph * graph);
 
-  region(jlm::rvsdg::structural_node * node, size_t index);
+  Region(rvsdg::structural_node * node, size_t index);
+
+  /**
+   * @return Returns an iterator range for iterating through the arguments of the region.
+   */
+  [[nodiscard]] RegionArgumentRange
+  Arguments() noexcept
+  {
+    return { arguments_.begin(), arguments_.end() };
+  }
+
+  /**
+   * @return Returns an iterator range for iterating through the arguments of the region.
+   */
+  [[nodiscard]] RegionArgumentConstRange
+  Arguments() const noexcept
+  {
+    return { arguments_.begin(), arguments_.end() };
+  }
+
+  /**
+   * @return Returns an iterator range for iterating through the results of the region.
+   */
+  [[nodiscard]] RegionResultRange
+  Results() noexcept
+  {
+    return { results_.begin(), results_.end() };
+  }
+
+  /**
+   * @return Returns an iterator range for iterating through the results of the region.
+   */
+  [[nodiscard]] RegionResultConstRange
+  Results() const noexcept
+  {
+    return { results_.begin(), results_.end() };
+  }
+
+  /**
+   * @return Returns an iterator range for iterating through the top nodes of the region.
+   */
+  [[nodiscard]] TopNodeRange
+  TopNodes() noexcept
+  {
+    return { top_nodes.begin(), top_nodes.end() };
+  }
+
+  /**
+   * @return Returns an iterator range for iterating through the top nodes of the region.
+   */
+  [[nodiscard]] TopNodeConstRange
+  TopNodes() const noexcept
+  {
+    return { top_nodes.begin(), top_nodes.end() };
+  }
+
+  /**
+   * @return Returns an iterator range for iterating through the nodes of the region.
+   */
+  [[nodiscard]] NodeRange
+  Nodes() noexcept
+  {
+    return { nodes.begin(), nodes.end() };
+  }
+
+  /**
+   * @return Returns an iterator range for iterating through the nodes of the region.
+   */
+  [[nodiscard]] NodeConstRange
+  Nodes() const noexcept
+  {
+    return { nodes.begin(), nodes.end() };
+  }
+
+  /**
+   * @return Returns an iterator range for iterating through the bottom nodes of the region.
+   */
+  [[nodiscard]] BottomNodeRange
+  BottomNodes() noexcept
+  {
+    return { bottom_nodes.begin(), bottom_nodes.end() };
+  }
+
+  /**
+   * @return Returns an iterator range for iterating through the bottom nodes of the
+   * region.
+   */
+  [[nodiscard]] BottomNodeConstRange
+  BottomNodes() const noexcept
+  {
+    return { bottom_nodes.begin(), bottom_nodes.end() };
+  }
 
   inline region_nodes_list::iterator
   begin()
@@ -368,7 +499,7 @@ public:
     map will be updated as nodes are copied.
   */
   void
-  copy(region * target, substitution_map & smap, bool copy_arguments, bool copy_results) const;
+  copy(Region * target, SubstitutionMap & smap, bool copy_arguments, bool copy_results) const;
 
   void
   prune(bool recursive);
@@ -387,7 +518,7 @@ public:
    */
   template<class Operation>
   static inline bool
-  Contains(const jlm::rvsdg::region & region, bool checkSubregions);
+  Contains(const rvsdg::Region & region, bool checkSubregions);
 
   /**
    * Counts the number of (sub-)regions contained within \p region. The count includes \p region,
@@ -398,7 +529,7 @@ public:
    * @return The number of (sub-)regions.
    */
   [[nodiscard]] static size_t
-  NumRegions(const jlm::rvsdg::region & region) noexcept;
+  NumRegions(const rvsdg::Region & region) noexcept;
 
   /**
    * Converts \p region and all of its contained structural nodes with subregions to a tree in
@@ -420,12 +551,12 @@ public:
    * \p annotationMap.
    *
    * @param region The top-level region that is converted
-   * @param annotationMap A map with annotations for instances of \ref region%s or
+   * @param annotationMap A map with annotations for instances of \ref Region%s or
    * structural_node%s.
    * @return A string containing the ASCII tree of \p region.
    */
   [[nodiscard]] static std::string
-  ToTree(const rvsdg::region & region, const util::AnnotationMap & annotationMap) noexcept;
+  ToTree(const rvsdg::Region & region, const util::AnnotationMap & annotationMap) noexcept;
 
   /**
    * Converts \p region and all of its contained structural nodes with subregions to a tree in
@@ -448,7 +579,7 @@ public:
    * @return A string containing the ASCII tree of \p region
    */
   [[nodiscard]] static std::string
-  ToTree(const rvsdg::region & region) noexcept;
+  ToTree(const rvsdg::Region & region) noexcept;
 
   region_nodes_list nodes;
 
@@ -459,7 +590,7 @@ public:
 private:
   static void
   ToTree(
-      const rvsdg::region & region,
+      const rvsdg::Region & region,
       const util::AnnotationMap & annotationMap,
       size_t indentationDepth,
       std::stringstream & stream) noexcept;
@@ -494,16 +625,16 @@ remove(jlm::rvsdg::node * node)
 }
 
 size_t
-nnodes(const jlm::rvsdg::region * region) noexcept;
+nnodes(const rvsdg::Region * region) noexcept;
 
 size_t
-nstructnodes(const jlm::rvsdg::region * region) noexcept;
+nstructnodes(const rvsdg::Region * region) noexcept;
 
 size_t
-nsimpnodes(const jlm::rvsdg::region * region) noexcept;
+nsimpnodes(const rvsdg::Region * region) noexcept;
 
 size_t
-ninputs(const jlm::rvsdg::region * region) noexcept;
+ninputs(const rvsdg::Region * region) noexcept;
 
 } // namespace
 

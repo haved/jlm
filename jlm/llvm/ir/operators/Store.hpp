@@ -32,7 +32,7 @@ public:
 
   virtual std::vector<jlm::rvsdg::output *>
   normalized_create(
-      jlm::rvsdg::region * region,
+      rvsdg::Region * region,
       const jlm::rvsdg::simple_op & op,
       const std::vector<jlm::rvsdg::output *> & operands) const override;
 
@@ -89,8 +89,8 @@ class StoreOperation : public rvsdg::simple_op
 {
 protected:
   StoreOperation(
-      const std::vector<std::shared_ptr<const rvsdg::type>> & operandTypes,
-      const std::vector<std::shared_ptr<const rvsdg::type>> & resultTypes,
+      const std::vector<std::shared_ptr<const rvsdg::Type>> & operandTypes,
+      const std::vector<std::shared_ptr<const rvsdg::Type>> & resultTypes,
       size_t alignment)
       : simple_op(operandTypes, resultTypes),
         Alignment_(alignment)
@@ -183,7 +183,7 @@ public:
 
 private:
   static const std::shared_ptr<const jlm::rvsdg::valuetype>
-  CheckAndExtractStoredType(const std::shared_ptr<const rvsdg::type> & type)
+  CheckAndExtractStoredType(const std::shared_ptr<const rvsdg::Type> & type)
   {
     if (auto storedType = std::dynamic_pointer_cast<const rvsdg::valuetype>(type))
     {
@@ -193,12 +193,12 @@ private:
     throw util::error("Expected value type");
   }
 
-  static std::vector<std::shared_ptr<const rvsdg::type>>
+  static std::vector<std::shared_ptr<const rvsdg::Type>>
   CreateOperandTypes(std::shared_ptr<const rvsdg::valuetype> storedType, size_t numMemoryStates)
   {
-    std::vector<std::shared_ptr<const rvsdg::type>> types(
+    std::vector<std::shared_ptr<const rvsdg::Type>> types(
         { PointerType::Create(), std::move(storedType) });
-    std::vector<std::shared_ptr<const rvsdg::type>> states(
+    std::vector<std::shared_ptr<const rvsdg::Type>> states(
         numMemoryStates,
         MemoryStateType::Create());
     types.insert(types.end(), states.begin(), states.end());
@@ -216,7 +216,7 @@ class StoreNode : public rvsdg::simple_node
 {
 protected:
   StoreNode(
-      rvsdg::region & region,
+      rvsdg::Region & region,
       const StoreOperation & operation,
       const std::vector<rvsdg::output *> & operands)
       : simple_node(&region, operation, operands)
@@ -314,7 +314,7 @@ class StoreNonVolatileNode final : public StoreNode
 {
 private:
   StoreNonVolatileNode(
-      jlm::rvsdg::region & region,
+      rvsdg::Region & region,
       const StoreNonVolatileOperation & operation,
       const std::vector<jlm::rvsdg::output *> & operands)
       : StoreNode(region, operation, operands)
@@ -334,7 +334,7 @@ public:
   CopyWithNewMemoryStates(const std::vector<rvsdg::output *> & memoryStates) const override;
 
   rvsdg::node *
-  copy(rvsdg::region * region, const std::vector<rvsdg::output *> & operands) const override;
+  copy(rvsdg::Region * region, const std::vector<rvsdg::output *> & operands) const override;
 
   static std::vector<rvsdg::output *>
   Create(
@@ -364,7 +364,7 @@ public:
 
   static std::vector<rvsdg::output *>
   Create(
-      rvsdg::region & region,
+      rvsdg::Region & region,
       const StoreNonVolatileOperation & storeOperation,
       const std::vector<rvsdg::output *> & operands)
   {
@@ -373,7 +373,7 @@ public:
 
   static StoreNonVolatileNode &
   CreateNode(
-      rvsdg::region & region,
+      rvsdg::Region & region,
       const StoreNonVolatileOperation & storeOperation,
       const std::vector<rvsdg::output *> & operands)
   {
@@ -382,7 +382,7 @@ public:
 
 private:
   static std::shared_ptr<const rvsdg::valuetype>
-  CheckAndExtractStoredType(const std::shared_ptr<const rvsdg::type> & type)
+  CheckAndExtractStoredType(const std::shared_ptr<const rvsdg::Type> & type)
   {
     if (auto storedType = std::dynamic_pointer_cast<const rvsdg::valuetype>(type))
     {
@@ -447,7 +447,7 @@ public:
 
 private:
   static std::shared_ptr<const rvsdg::valuetype>
-  CheckAndExtractStoredType(const std::shared_ptr<const rvsdg::type> & type)
+  CheckAndExtractStoredType(const std::shared_ptr<const rvsdg::Type> & type)
   {
     if (auto storedType = std::dynamic_pointer_cast<const rvsdg::valuetype>(type))
       return storedType;
@@ -455,23 +455,23 @@ private:
     throw jlm::util::error("Expected value type");
   }
 
-  static std::vector<std::shared_ptr<const rvsdg::type>>
+  static std::vector<std::shared_ptr<const rvsdg::Type>>
   CreateOperandTypes(std::shared_ptr<const rvsdg::valuetype> storedType, size_t numMemoryStates)
   {
-    std::vector<std::shared_ptr<const rvsdg::type>> types(
+    std::vector<std::shared_ptr<const rvsdg::Type>> types(
         { PointerType::Create(), std::move(storedType), iostatetype::Create() });
-    std::vector<std::shared_ptr<const rvsdg::type>> states(
+    std::vector<std::shared_ptr<const rvsdg::Type>> states(
         numMemoryStates,
         MemoryStateType::Create());
     types.insert(types.end(), states.begin(), states.end());
     return types;
   }
 
-  static std::vector<std::shared_ptr<const rvsdg::type>>
+  static std::vector<std::shared_ptr<const rvsdg::Type>>
   CreateResultTypes(size_t numMemoryStates)
   {
-    std::vector<std::shared_ptr<const rvsdg::type>> types({ iostatetype::Create() });
-    std::vector<std::shared_ptr<const rvsdg::type>> memoryStates(
+    std::vector<std::shared_ptr<const rvsdg::Type>> types({ iostatetype::Create() });
+    std::vector<std::shared_ptr<const rvsdg::Type>> memoryStates(
         numMemoryStates,
         MemoryStateType::Create());
     types.insert(types.end(), memoryStates.begin(), memoryStates.end());
@@ -485,7 +485,7 @@ private:
 class StoreVolatileNode final : public StoreNode
 {
   StoreVolatileNode(
-      rvsdg::region & region,
+      rvsdg::Region & region,
       const StoreVolatileOperation & operation,
       const std::vector<rvsdg::output *> & operands)
       : StoreNode(region, operation, operands)
@@ -521,11 +521,11 @@ public:
   }
 
   rvsdg::node *
-  copy(rvsdg::region * region, const std::vector<rvsdg::output *> & operands) const override;
+  copy(rvsdg::Region * region, const std::vector<rvsdg::output *> & operands) const override;
 
   static StoreVolatileNode &
   CreateNode(
-      rvsdg::region & region,
+      rvsdg::Region & region,
       const StoreVolatileOperation & storeOperation,
       const std::vector<rvsdg::output *> & operands)
   {
@@ -551,7 +551,7 @@ public:
 
   static std::vector<rvsdg::output *>
   Create(
-      rvsdg::region & region,
+      rvsdg::Region & region,
       const StoreVolatileOperation & loadOperation,
       const std::vector<rvsdg::output *> & operands)
   {
@@ -560,7 +560,7 @@ public:
 
 private:
   static std::shared_ptr<const rvsdg::valuetype>
-  CheckAndExtractStoredType(const std::shared_ptr<const rvsdg::type> & type)
+  CheckAndExtractStoredType(const std::shared_ptr<const rvsdg::Type> & type)
   {
     if (auto storedType = std::dynamic_pointer_cast<const rvsdg::valuetype>(type))
       return storedType;

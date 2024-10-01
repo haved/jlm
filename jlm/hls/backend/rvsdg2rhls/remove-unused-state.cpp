@@ -13,7 +13,7 @@ namespace jlm::hls
 {
 
 void
-remove_unused_state(jlm::rvsdg::region * region, bool can_remove_arguments)
+remove_unused_state(rvsdg::Region * region, bool can_remove_arguments)
 {
   // process children first so that unnecessary users get removed
   for (auto & node : jlm::rvsdg::topdown_traverser(region))
@@ -174,7 +174,7 @@ jlm::llvm::lambda::node *
 remove_lambda_passthrough(llvm::lambda::node * ln)
 {
   auto old_fcttype = ln->type();
-  std::vector<std::shared_ptr<const jlm::rvsdg::type>> new_argument_types;
+  std::vector<std::shared_ptr<const jlm::rvsdg::Type>> new_argument_types;
   for (size_t i = 0; i < old_fcttype.NumArguments(); ++i)
   {
     auto arg = ln->subregion()->argument(i);
@@ -185,7 +185,7 @@ remove_lambda_passthrough(llvm::lambda::node * ln)
       new_argument_types.push_back(argtype);
     }
   }
-  std::vector<std::shared_ptr<const jlm::rvsdg::type>> new_result_types;
+  std::vector<std::shared_ptr<const jlm::rvsdg::Type>> new_result_types;
   for (size_t i = 0; i < old_fcttype.NumResults(); ++i)
   {
     auto res = ln->subregion()->result(i);
@@ -204,7 +204,7 @@ remove_lambda_passthrough(llvm::lambda::node * ln)
       ln->linkage(),
       ln->attributes());
 
-  jlm::rvsdg::substitution_map smap;
+  rvsdg::SubstitutionMap smap;
   for (size_t i = 0; i < ln->ncvarguments(); ++i)
   {
     // copy over cvarguments

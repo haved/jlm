@@ -61,7 +61,7 @@ JlmToMlirConverter::ConvertOmega(const rvsdg::graph & graph)
 }
 
 ::llvm::SmallVector<::mlir::Value>
-JlmToMlirConverter::ConvertRegion(rvsdg::region & region, ::mlir::Block & block)
+JlmToMlirConverter::ConvertRegion(rvsdg::Region & region, ::mlir::Block & block)
 {
   for (size_t i = 0; i < region.narguments(); ++i)
   {
@@ -465,7 +465,7 @@ JlmToMlirConverter::ConvertGamma(
 }
 
 ::mlir::Type
-JlmToMlirConverter::ConvertType(const rvsdg::type & type)
+JlmToMlirConverter::ConvertType(const rvsdg::Type & type)
 {
   if (auto bt = dynamic_cast<const rvsdg::bittype *>(&type))
   {

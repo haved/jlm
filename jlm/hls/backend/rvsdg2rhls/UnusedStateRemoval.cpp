@@ -36,7 +36,7 @@ RemoveUnusedStatesFromLambda(llvm::lambda::node & lambdaNode)
 {
   auto & oldFunctionType = lambdaNode.type();
 
-  std::vector<std::shared_ptr<const jlm::rvsdg::type>> newArgumentTypes;
+  std::vector<std::shared_ptr<const jlm::rvsdg::Type>> newArgumentTypes;
   for (size_t i = 0; i < oldFunctionType.NumArguments(); ++i)
   {
     auto argument = lambdaNode.subregion()->argument(i);
@@ -49,7 +49,7 @@ RemoveUnusedStatesFromLambda(llvm::lambda::node & lambdaNode)
     }
   }
 
-  std::vector<std::shared_ptr<const jlm::rvsdg::type>> newResultTypes;
+  std::vector<std::shared_ptr<const jlm::rvsdg::Type>> newResultTypes;
   for (size_t i = 0; i < oldFunctionType.NumResults(); ++i)
   {
     auto result = lambdaNode.subregion()->result(i);
@@ -70,7 +70,7 @@ RemoveUnusedStatesFromLambda(llvm::lambda::node & lambdaNode)
       lambdaNode.linkage(),
       lambdaNode.attributes());
 
-  jlm::rvsdg::substitution_map substitutionMap;
+  rvsdg::SubstitutionMap substitutionMap;
   for (size_t i = 0; i < lambdaNode.ncvarguments(); ++i)
   {
     auto oldArgument = lambdaNode.cvargument(i);
@@ -174,7 +174,7 @@ RemoveUnusedStatesFromGammaNode(rvsdg::GammaNode & gammaNode)
 }
 
 static void
-RemoveUnusedStatesFromThetaNode(rvsdg::theta_node & thetaNode)
+RemoveUnusedStatesFromThetaNode(rvsdg::ThetaNode & thetaNode)
 {
   auto thetaSubregion = thetaNode.subregion();
   for (int i = thetaSubregion->narguments() - 1; i >= 0; --i)
@@ -188,7 +188,7 @@ RemoveUnusedStatesFromThetaNode(rvsdg::theta_node & thetaNode)
 }
 
 static void
-RemoveUnusedStatesInRegion(rvsdg::region & region);
+RemoveUnusedStatesInRegion(rvsdg::Region & region);
 
 static void
 RemoveUnusedStatesInStructuralNode(rvsdg::structural_node & structuralNode)
@@ -203,7 +203,7 @@ RemoveUnusedStatesInStructuralNode(rvsdg::structural_node & structuralNode)
   {
     RemoveUnusedStatesFromGammaNode(*gammaNode);
   }
-  else if (auto thetaNode = dynamic_cast<rvsdg::theta_node *>(&structuralNode))
+  else if (auto thetaNode = dynamic_cast<rvsdg::ThetaNode *>(&structuralNode))
   {
     RemoveUnusedStatesFromThetaNode(*thetaNode);
   }
@@ -214,7 +214,7 @@ RemoveUnusedStatesInStructuralNode(rvsdg::structural_node & structuralNode)
 }
 
 static void
-RemoveUnusedStatesInRegion(rvsdg::region & region)
+RemoveUnusedStatesInRegion(rvsdg::Region & region)
 {
   for (auto & node : rvsdg::topdown_traverser(&region))
   {

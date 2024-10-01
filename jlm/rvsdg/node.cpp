@@ -23,8 +23,8 @@ input::~input() noexcept
 
 input::input(
     jlm::rvsdg::output * origin,
-    jlm::rvsdg::region * region,
-    std::shared_ptr<const rvsdg::type> type)
+    rvsdg::Region * region,
+    std::shared_ptr<const rvsdg::Type> type)
     : index_(0),
       origin_(origin),
       region_(region),
@@ -83,7 +83,7 @@ output::~output() noexcept
   JLM_ASSERT(nusers() == 0);
 }
 
-output::output(jlm::rvsdg::region * region, std::shared_ptr<const rvsdg::type> type)
+output::output(rvsdg::Region * region, std::shared_ptr<const rvsdg::Type> type)
     : index_(0),
       region_(region),
       Type_(std::move(type))
@@ -149,21 +149,21 @@ namespace jlm::rvsdg
 node_input::node_input(
     jlm::rvsdg::output * origin,
     jlm::rvsdg::node * node,
-    std::shared_ptr<const rvsdg::type> type)
+    std::shared_ptr<const rvsdg::Type> type)
     : jlm::rvsdg::input(origin, node->region(), std::move(type)),
       node_(node)
 {}
 
 /* node_output class */
 
-node_output::node_output(jlm::rvsdg::node * node, std::shared_ptr<const rvsdg::type> type)
+node_output::node_output(jlm::rvsdg::node * node, std::shared_ptr<const rvsdg::Type> type)
     : jlm::rvsdg::output(node->region(), std::move(type)),
       node_(node)
 {}
 
 /* node class */
 
-node::node(std::unique_ptr<jlm::rvsdg::operation> op, jlm::rvsdg::region * region)
+node::node(std::unique_ptr<jlm::rvsdg::operation> op, rvsdg::Region * region)
     : depth_(0),
       graph_(region->graph()),
       region_(region),
@@ -288,9 +288,9 @@ node::recompute_depth() noexcept
 }
 
 jlm::rvsdg::node *
-node::copy(jlm::rvsdg::region * region, const std::vector<jlm::rvsdg::output *> & operands) const
+node::copy(rvsdg::Region * region, const std::vector<jlm::rvsdg::output *> & operands) const
 {
-  substitution_map smap;
+  SubstitutionMap smap;
 
   size_t noperands = std::min(operands.size(), ninputs());
   for (size_t n = 0; n < noperands; n++)
@@ -311,7 +311,7 @@ producer(const jlm::rvsdg::output * output) noexcept
   if (!argument->input())
     return nullptr;
 
-  if (is<theta_op>(argument->region()->node())
+  if (is<ThetaOperation>(argument->region()->node())
       && (argument->region()->result(argument->index() + 1)->origin() != argument))
     return nullptr;
 

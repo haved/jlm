@@ -67,7 +67,7 @@ GetMemoryStateResult(const llvm::lambda::node & lambda)
 }
 
 void
-gather_mem_nodes(jlm::rvsdg::region * region, std::vector<jlm::rvsdg::simple_node *> & mem_nodes)
+gather_mem_nodes(rvsdg::Region * region, std::vector<jlm::rvsdg::simple_node *> & mem_nodes)
 {
   for (auto & node : jlm::rvsdg::topdown_traverser(region))
   {
@@ -91,7 +91,7 @@ gather_mem_nodes(jlm::rvsdg::region * region, std::vector<jlm::rvsdg::simple_nod
 }
 
 jlm::rvsdg::output *
-route_through(jlm::rvsdg::region * target, jlm::rvsdg::output * response)
+route_through(rvsdg::Region * target, jlm::rvsdg::output * response)
 {
   if (response->region() == target)
   {
@@ -119,7 +119,7 @@ route_through(jlm::rvsdg::region * target, jlm::rvsdg::output * response)
       }
       JLM_UNREACHABLE("THIS SHOULD NOT HAPPEN");
     }
-    else if (auto tn = dynamic_cast<jlm::rvsdg::theta_node *>(target->node()))
+    else if (auto tn = dynamic_cast<rvsdg::ThetaNode *>(target->node()))
     {
       auto lv = tn->add_loopvar(parent_response);
       parrent_user->divert_to(lv);
@@ -131,7 +131,7 @@ route_through(jlm::rvsdg::region * target, jlm::rvsdg::output * response)
 
 /* assign each load and store its own state edge. */
 void
-mem_sep_independent(jlm::rvsdg::region * region)
+mem_sep_independent(rvsdg::Region * region)
 {
   auto lambda = dynamic_cast<const llvm::lambda::node *>(region->nodes.begin().ptr());
   auto lambda_region = lambda->subregion();
@@ -211,7 +211,7 @@ trace_edge(
         common_edge = subres->output();
       }
     }
-    else if (auto ti = dynamic_cast<jlm::rvsdg::theta_input *>(user))
+    else if (auto ti = dynamic_cast<rvsdg::ThetaInput *>(user))
     {
       auto tn = ti->node();
       auto lv = tn->add_loopvar(new_edge);
@@ -275,7 +275,7 @@ trace_edge(
 
 /* assign each pointer argument its own state edge. */
 void
-mem_sep_argument(jlm::rvsdg::region * region)
+mem_sep_argument(rvsdg::Region * region)
 {
   auto lambda = dynamic_cast<const llvm::lambda::node *>(region->nodes.begin().ptr());
   auto lambda_region = lambda->subregion();

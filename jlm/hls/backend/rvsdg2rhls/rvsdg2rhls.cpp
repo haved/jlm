@@ -113,7 +113,7 @@ trace_call(jlm::rvsdg::input * input)
 
   auto argument = dynamic_cast<const rvsdg::RegionArgument *>(input->origin());
   const jlm::rvsdg::output * result;
-  if (auto to = dynamic_cast<const jlm::rvsdg::theta_output *>(input->origin()))
+  if (auto to = dynamic_cast<const rvsdg::ThetaOutput *>(input->origin()))
   {
     result = trace_call(to->input());
   }
@@ -134,7 +134,7 @@ trace_call(jlm::rvsdg::input * input)
 }
 
 void
-inline_calls(jlm::rvsdg::region * region)
+inline_calls(rvsdg::Region * region)
 {
   for (auto & node : jlm::rvsdg::topdown_traverser(region))
   {
@@ -176,7 +176,7 @@ inline_calls(jlm::rvsdg::region * region)
 size_t alloca_cnt = 0;
 
 void
-convert_alloca(jlm::rvsdg::region * region)
+convert_alloca(rvsdg::Region * region)
 {
   for (auto & node : jlm::rvsdg::topdown_traverser(region))
   {
@@ -260,7 +260,7 @@ rename_delta(llvm::delta::node * odn)
       "",
       odn->constant());
   /* add dependencies */
-  jlm::rvsdg::substitution_map rmap;
+  rvsdg::SubstitutionMap rmap;
   for (size_t i = 0; i < odn->ncvarguments(); i++)
   {
     auto input = odn->input(i);
@@ -286,7 +286,7 @@ change_linkage(llvm::lambda::node * ln, llvm::linkage link)
       llvm::lambda::node::create(ln->region(), ln->Type(), ln->name(), link, ln->attributes());
 
   /* add context variables */
-  jlm::rvsdg::substitution_map subregionmap;
+  rvsdg::SubstitutionMap subregionmap;
   for (auto & cv : ln->ctxvars())
   {
     auto origin = cv.origin();
@@ -337,7 +337,7 @@ split_hls_function(llvm::RvsdgModule & rm, const std::string & function_name)
       inline_calls(ln->subregion());
       split_opt(rm);
       //            convert_alloca(ln->subregion());
-      jlm::rvsdg::substitution_map smap;
+      rvsdg::SubstitutionMap smap;
       for (size_t i = 0; i < ln->ninputs(); ++i)
       {
         auto orig_node_output = dynamic_cast<jlm::rvsdg::node_output *>(ln->input(i)->origin());
@@ -445,7 +445,7 @@ dump_ref(llvm::RvsdgModule & rhls, std::string & path)
 {
   auto reference =
       llvm::RvsdgModule::Create(rhls.SourceFileName(), rhls.TargetTriple(), rhls.DataLayout());
-  jlm::rvsdg::substitution_map smap;
+  rvsdg::SubstitutionMap smap;
   rhls.Rvsdg().root()->copy(reference->Rvsdg().root(), smap, true, true);
   pre_opt(*reference);
   instrument_ref(*reference);

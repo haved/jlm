@@ -103,7 +103,7 @@ BaseHLS::get_port_name(jlm::rvsdg::output * port)
 }
 
 int
-BaseHLS::JlmSize(const jlm::rvsdg::type * type)
+BaseHLS::JlmSize(const jlm::rvsdg::Type * type)
 {
   if (auto bt = dynamic_cast<const jlm::rvsdg::bittype *>(type))
   {
@@ -137,7 +137,7 @@ BaseHLS::JlmSize(const jlm::rvsdg::type * type)
 }
 
 void
-BaseHLS::create_node_names(jlm::rvsdg::region * r)
+BaseHLS::create_node_names(rvsdg::Region * r)
 {
   for (auto & node : r->nodes)
   {

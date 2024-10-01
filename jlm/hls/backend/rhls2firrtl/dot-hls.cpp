@@ -167,7 +167,7 @@ DotHLS::node_to_dot(const jlm::rvsdg::node * node)
 }
 
 std::string
-DotHLS::edge(std::string src, std::string snk, const jlm::rvsdg::type & type, bool back)
+DotHLS::edge(std::string src, std::string snk, const jlm::rvsdg::Type & type, bool back)
 {
   auto color = "black";
   JLM_ASSERT(src != "" && snk != "");
@@ -352,7 +352,7 @@ DotHLS::prepare_loop_out_port(hls::loop_node * ln)
 }
 
 std::string
-DotHLS::subregion_to_dot(jlm::rvsdg::region * sr)
+DotHLS::subregion_to_dot(rvsdg::Region * sr)
 {
   std::ostringstream dot;
   dot << "digraph G {\n";

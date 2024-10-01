@@ -209,7 +209,7 @@ is_slice_exclusive_(
 }
 
 void
-dump_xml(const jlm::rvsdg::region * region, const std::string & file_name)
+dump_xml(const rvsdg::Region * region, const std::string & file_name)
 {
   auto xml_file = fopen(file_name.c_str(), "w");
   jlm::rvsdg::view_xml(region, xml_file);
@@ -224,7 +224,7 @@ decouple_load(
 {
   // loadNode is always a part of loop_slice due to state edges
   auto new_loop = loop_node::create(loopNode->region(), false);
-  jlm::rvsdg::substitution_map smap;
+  rvsdg::SubstitutionMap smap;
   std::vector<backedge_argument *> backedge_args;
   // create arguments
   for (size_t i = 0; i < loopNode->subregion()->narguments(); ++i)
@@ -464,7 +464,7 @@ process_loopnode(loop_node * loopNode)
 }
 
 void
-dae_conv(jlm::rvsdg::region * region)
+dae_conv(rvsdg::Region * region)
 {
   auto lambda = dynamic_cast<const jlm::llvm::lambda::node *>(region->nodes.begin().ptr());
   bool changed;

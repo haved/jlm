@@ -239,7 +239,7 @@ public:
       return jlm::util::strfmt(dbgstr, ":arg", index);
     }
 
-    if (is<rvsdg::theta_output>(Output_))
+    if (is<rvsdg::ThetaOutput>(Output_))
     {
       auto dbgstr = jlm::rvsdg::node_output::node(Output_)->operation().debug_string();
       return jlm::util::strfmt(dbgstr, ":out", index);
@@ -1652,7 +1652,7 @@ Steensgaard::AnalyzeGamma(const rvsdg::GammaNode & node)
 }
 
 void
-Steensgaard::AnalyzeTheta(const jlm::rvsdg::theta_node & theta)
+Steensgaard::AnalyzeTheta(const rvsdg::ThetaNode & theta)
 {
   for (auto thetaOutput : theta)
   {
@@ -1696,7 +1696,7 @@ Steensgaard::AnalyzeStructuralNode(const jlm::rvsdg::structural_node & node)
   {
     AnalyzeGamma(*gammaNode);
   }
-  else if (auto thetaNode = dynamic_cast<const rvsdg::theta_node *>(&node))
+  else if (auto thetaNode = dynamic_cast<const rvsdg::ThetaNode *>(&node))
   {
     AnalyzeTheta(*thetaNode);
   }
@@ -1711,7 +1711,7 @@ Steensgaard::AnalyzeStructuralNode(const jlm::rvsdg::structural_node & node)
 }
 
 void
-Steensgaard::AnalyzeRegion(jlm::rvsdg::region & region)
+Steensgaard::AnalyzeRegion(rvsdg::Region & region)
 {
   // Check that we added a RegisterLocation for each required argument
   for (size_t n = 0; n < region.narguments(); n++)

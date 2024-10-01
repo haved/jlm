@@ -32,7 +32,7 @@ public:
 
   virtual std::vector<rvsdg::output *>
   normalized_create(
-      rvsdg::region * region,
+      rvsdg::Region * region,
       const rvsdg::simple_op & op,
       const std::vector<rvsdg::output *> & operands) const override;
 
@@ -127,8 +127,8 @@ class LoadOperation : public rvsdg::simple_op
 {
 protected:
   LoadOperation(
-      const std::vector<std::shared_ptr<const rvsdg::type>> & operandTypes,
-      const std::vector<std::shared_ptr<const rvsdg::type>> & resultTypes,
+      const std::vector<std::shared_ptr<const rvsdg::Type>> & operandTypes,
+      const std::vector<std::shared_ptr<const rvsdg::Type>> & resultTypes,
       size_t alignment)
       : simple_op(operandTypes, resultTypes),
         Alignment_(alignment)
@@ -224,24 +224,24 @@ public:
   }
 
 private:
-  static std::vector<std::shared_ptr<const rvsdg::type>>
+  static std::vector<std::shared_ptr<const rvsdg::Type>>
   CreateOperandTypes(size_t numMemoryStates)
   {
-    std::vector<std::shared_ptr<const rvsdg::type>> types(
+    std::vector<std::shared_ptr<const rvsdg::Type>> types(
         { PointerType::Create(), iostatetype::Create() });
-    std::vector<std::shared_ptr<const rvsdg::type>> states(
+    std::vector<std::shared_ptr<const rvsdg::Type>> states(
         numMemoryStates,
         MemoryStateType::Create());
     types.insert(types.end(), states.begin(), states.end());
     return types;
   }
 
-  static std::vector<std::shared_ptr<const rvsdg::type>>
+  static std::vector<std::shared_ptr<const rvsdg::Type>>
   CreateResultTypes(std::shared_ptr<const rvsdg::valuetype> loadedType, size_t numMemoryStates)
   {
-    std::vector<std::shared_ptr<const rvsdg::type>> types(
+    std::vector<std::shared_ptr<const rvsdg::Type>> types(
         { std::move(loadedType), iostatetype::Create() });
-    std::vector<std::shared_ptr<const rvsdg::type>> states(
+    std::vector<std::shared_ptr<const rvsdg::Type>> states(
         numMemoryStates,
         MemoryStateType::Create());
     types.insert(types.end(), states.begin(), states.end());
@@ -259,7 +259,7 @@ class LoadNode : public rvsdg::simple_node
 {
 protected:
   LoadNode(
-      rvsdg::region & region,
+      rvsdg::Region & region,
       const LoadOperation & operation,
       const std::vector<rvsdg::output *> & operands)
       : simple_node(&region, operation, operands)
@@ -357,7 +357,7 @@ class LoadVolatileNode final : public LoadNode
 {
 private:
   LoadVolatileNode(
-      rvsdg::region & region,
+      rvsdg::Region & region,
       const LoadVolatileOperation & operation,
       const std::vector<rvsdg::output *> & operands)
       : LoadNode(region, operation, operands)
@@ -365,7 +365,7 @@ private:
 
 public:
   rvsdg::node *
-  copy(rvsdg::region * region, const std::vector<rvsdg::output *> & operands) const override;
+  copy(rvsdg::Region * region, const std::vector<rvsdg::output *> & operands) const override;
 
   [[nodiscard]] const LoadVolatileOperation &
   GetOperation() const noexcept override;
@@ -397,7 +397,7 @@ public:
 
   static LoadVolatileNode &
   CreateNode(
-      rvsdg::region & region,
+      rvsdg::Region & region,
       const LoadVolatileOperation & loadOperation,
       const std::vector<rvsdg::output *> & operands)
   {
@@ -421,7 +421,7 @@ public:
 
   static std::vector<rvsdg::output *>
   Create(
-      rvsdg::region & region,
+      rvsdg::Region & region,
       const LoadVolatileOperation & loadOperation,
       const std::vector<rvsdg::output *> & operands)
   {
@@ -480,22 +480,22 @@ public:
   }
 
 private:
-  static std::vector<std::shared_ptr<const rvsdg::type>>
+  static std::vector<std::shared_ptr<const rvsdg::Type>>
   CreateOperandTypes(size_t numMemoryStates)
   {
-    std::vector<std::shared_ptr<const rvsdg::type>> types(1, PointerType::Create());
-    std::vector<std::shared_ptr<const rvsdg::type>> states(
+    std::vector<std::shared_ptr<const rvsdg::Type>> types(1, PointerType::Create());
+    std::vector<std::shared_ptr<const rvsdg::Type>> states(
         numMemoryStates,
         MemoryStateType::Create());
     types.insert(types.end(), states.begin(), states.end());
     return types;
   }
 
-  static std::vector<std::shared_ptr<const rvsdg::type>>
+  static std::vector<std::shared_ptr<const rvsdg::Type>>
   CreateResultTypes(std::shared_ptr<const rvsdg::valuetype> loadedType, size_t numMemoryStates)
   {
-    std::vector<std::shared_ptr<const rvsdg::type>> types(1, std::move(loadedType));
-    std::vector<std::shared_ptr<const rvsdg::type>> states(
+    std::vector<std::shared_ptr<const rvsdg::Type>> types(1, std::move(loadedType));
+    std::vector<std::shared_ptr<const rvsdg::Type>> states(
         numMemoryStates,
         MemoryStateType::Create());
     types.insert(types.end(), states.begin(), states.end());
@@ -510,7 +510,7 @@ class LoadNonVolatileNode final : public LoadNode
 {
 private:
   LoadNonVolatileNode(
-      rvsdg::region & region,
+      rvsdg::Region & region,
       const LoadNonVolatileOperation & operation,
       const std::vector<rvsdg::output *> & operands)
       : LoadNode(region, operation, operands)
@@ -530,7 +530,7 @@ public:
   CopyWithNewMemoryStates(const std::vector<rvsdg::output *> & memoryStates) const override;
 
   rvsdg::node *
-  copy(rvsdg::region * region, const std::vector<rvsdg::output *> & operands) const override;
+  copy(rvsdg::Region * region, const std::vector<rvsdg::output *> & operands) const override;
 
   static std::vector<rvsdg::output *>
   Create(
@@ -558,7 +558,7 @@ public:
 
   static std::vector<rvsdg::output *>
   Create(
-      rvsdg::region & region,
+      rvsdg::Region & region,
       const LoadNonVolatileOperation & loadOperation,
       const std::vector<rvsdg::output *> & operands)
   {
@@ -567,7 +567,7 @@ public:
 
   static LoadNonVolatileNode &
   CreateNode(
-      rvsdg::region & region,
+      rvsdg::Region & region,
       const LoadNonVolatileOperation & loadOperation,
       const std::vector<rvsdg::output *> & operands)
   {

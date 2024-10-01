@@ -32,7 +32,7 @@ public:
   }
 
   static int
-  JlmSize(const jlm::rvsdg::type * type);
+  JlmSize(const jlm::rvsdg::Type * type);
 
   /**
    * @return The size of a pointer in bits.
@@ -64,7 +64,7 @@ protected:
   get_hls_lambda(llvm::RvsdgModule & rm);
 
   void
-  create_node_names(jlm::rvsdg::region * r);
+  create_node_names(rvsdg::Region * r);
 
   virtual std::string
   get_text(llvm::RvsdgModule & rm) = 0;

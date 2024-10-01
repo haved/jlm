@@ -107,7 +107,7 @@ private:
   std::unordered_map<jlm::rvsdg::simple_node *, circt::firrtl::InstanceOp>
   MlirGen(hls::loop_node * loopNode, mlir::Block * body, mlir::Block * circuitBody);
   circt::firrtl::FModuleOp
-  MlirGen(jlm::rvsdg::region * subRegion, mlir::Block * circuitBody);
+  MlirGen(rvsdg::Region * subRegion, mlir::Block * circuitBody);
   circt::firrtl::FModuleOp
   MlirGen(const jlm::rvsdg::simple_node * node);
   // Operations
@@ -266,16 +266,16 @@ private:
   circt::firrtl::IntType
   GetIntType(int size);
   circt::firrtl::IntType
-  GetIntType(const jlm::rvsdg::type * type, int extend = 0);
+  GetIntType(const jlm::rvsdg::Type * type, int extend = 0);
   circt::firrtl::FIRRTLBaseType
-  GetFirrtlType(const jlm::rvsdg::type * type);
+  GetFirrtlType(const jlm::rvsdg::Type * type);
   std::string
   GetModuleName(const jlm::rvsdg::node * node);
   bool
   IsIdentityMapping(const jlm::rvsdg::match_op & op);
 
   std::unordered_map<jlm::rvsdg::simple_node *, circt::firrtl::InstanceOp>
-  createInstances(jlm::rvsdg::region * subRegion, mlir::Block * circuitBody, mlir::Block * body);
+  createInstances(rvsdg::Region * subRegion, mlir::Block * circuitBody, mlir::Block * body);
   void
   check_module(circt::firrtl::FModuleOp & module);
 

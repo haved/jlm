@@ -62,8 +62,8 @@ invariantInput(const rvsdg::GammaOutput & output, InvariantOutputMap & invariant
   return nullptr;
 }
 
-static rvsdg::theta_input *
-invariantInput(const rvsdg::theta_output & output, InvariantOutputMap & invariantOutputs)
+static rvsdg::ThetaInput *
+invariantInput(const rvsdg::ThetaOutput & output, InvariantOutputMap & invariantOutputs)
 {
   auto origin = output.result()->origin();
 
@@ -97,12 +97,12 @@ invariantInput(const rvsdg::output & output, InvariantOutputMap & invariantOutpu
   if (invariantOutputs.find(&output) != invariantOutputs.end())
     return invariantOutputs[&output];
 
-  if (auto thetaOutput = dynamic_cast<const rvsdg::theta_output *>(&output))
+  if (auto thetaOutput = dynamic_cast<const rvsdg::ThetaOutput *>(&output))
     return invariantInput(*thetaOutput, invariantOutputs);
 
   if (auto thetaArgument = dynamic_cast<const rvsdg::ThetaArgument *>(&output))
   {
-    auto thetaInput = static_cast<const rvsdg::theta_input *>(thetaArgument->input());
+    auto thetaInput = static_cast<const rvsdg::ThetaInput *>(thetaArgument->input());
     return invariantInput(*thetaInput->output(), invariantOutputs);
   }
 
@@ -145,7 +145,7 @@ CallOperation::copy() const
 }
 
 rvsdg::node *
-CallNode::copy(rvsdg::region * region, const std::vector<rvsdg::output *> & operands) const
+CallNode::copy(rvsdg::Region * region, const std::vector<rvsdg::output *> & operands) const
 {
   return &CreateNode(*region, GetOperation(), operands);
 }
@@ -198,7 +198,7 @@ CallNode::TraceFunctionInput(const CallNode & callNode)
       continue;
     }
 
-    if (auto thetaOutput = dynamic_cast<const rvsdg::theta_output *>(origin))
+    if (auto thetaOutput = dynamic_cast<const rvsdg::ThetaOutput *>(origin))
     {
       if (auto input = invariantInput(*thetaOutput))
       {

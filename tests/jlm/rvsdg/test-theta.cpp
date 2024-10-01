@@ -22,7 +22,7 @@ TestThetaCreation()
   auto imp2 = &jlm::tests::GraphImport::Create(graph, t, "imp2");
   auto imp3 = &jlm::tests::GraphImport::Create(graph, t, "imp3");
 
-  auto theta = jlm::rvsdg::theta_node::create(graph.root());
+  auto theta = jlm::rvsdg::ThetaNode::create(graph.root());
 
   auto lv1 = theta->add_loopvar(imp1);
   auto lv2 = theta->add_loopvar(imp2);
@@ -45,7 +45,7 @@ TestThetaCreation()
   assert(theta->nloopvars() == 3);
   assert((*theta->begin())->result() == theta->subregion()->result(1));
 
-  assert(dynamic_cast<const jlm::rvsdg::theta_node *>(theta2));
+  assert(dynamic_cast<const jlm::rvsdg::ThetaNode *>(theta2));
 }
 
 static void
@@ -61,7 +61,7 @@ TestRemoveThetaOutputsWhere()
   auto x = &jlm::tests::GraphImport::Create(rvsdg, valueType, "x");
   auto y = &jlm::tests::GraphImport::Create(rvsdg, valueType, "y");
 
-  auto thetaNode = theta_node::create(rvsdg.root());
+  auto thetaNode = ThetaNode::create(rvsdg.root());
 
   auto thetaOutput0 = thetaNode->add_loopvar(ctl);
   auto thetaOutput1 = thetaNode->add_loopvar(x);
@@ -72,7 +72,7 @@ TestRemoveThetaOutputsWhere()
 
   // Act & Assert
   auto deadInputs = thetaNode->RemoveThetaOutputsWhere(
-      [&](const theta_output & output)
+      [&](const ThetaOutput & output)
       {
         return output.index() == thetaOutput1->index();
       });
@@ -86,7 +86,7 @@ TestRemoveThetaOutputsWhere()
   assert(thetaOutput2->result()->index() == 2);
 
   deadInputs = thetaNode->RemoveThetaOutputsWhere(
-      [](const theta_output &)
+      [](const ThetaOutput &)
       {
         return true;
       });
@@ -111,7 +111,7 @@ TestPruneThetaOutputs()
   auto x = &jlm::tests::GraphImport::Create(rvsdg, valueType, "x");
   auto y = &jlm::tests::GraphImport::Create(rvsdg, valueType, "y");
 
-  auto thetaNode = theta_node::create(rvsdg.root());
+  auto thetaNode = ThetaNode::create(rvsdg.root());
 
   auto thetaOutput0 = thetaNode->add_loopvar(ctl);
   thetaNode->add_loopvar(x);
@@ -146,7 +146,7 @@ TestRemoveThetaInputsWhere()
   auto x = &jlm::tests::GraphImport::Create(rvsdg, valueType, "x");
   auto y = &jlm::tests::GraphImport::Create(rvsdg, valueType, "y");
 
-  auto thetaNode = theta_node::create(rvsdg.root());
+  auto thetaNode = ThetaNode::create(rvsdg.root());
 
   auto thetaOutput0 = thetaNode->add_loopvar(ctl);
   auto thetaOutput1 = thetaNode->add_loopvar(x);
@@ -163,7 +163,7 @@ TestRemoveThetaInputsWhere()
 
   // Act & Assert
   auto deadOutputs = thetaNode->RemoveThetaInputsWhere(
-      [&](const theta_input & input)
+      [&](const ThetaInput & input)
       {
         return input.index() == thetaOutput1->input()->index();
       });
@@ -177,7 +177,7 @@ TestRemoveThetaInputsWhere()
   assert(thetaOutput2->argument()->index() == 1);
 
   deadOutputs = thetaNode->RemoveThetaInputsWhere(
-      [](const theta_input & input)
+      [](const ThetaInput & input)
       {
         return true;
       });
@@ -202,7 +202,7 @@ TestPruneThetaInputs()
   auto x = &jlm::tests::GraphImport::Create(rvsdg, valueType, "x");
   auto y = &jlm::tests::GraphImport::Create(rvsdg, valueType, "y");
 
-  auto thetaNode = theta_node::create(rvsdg.root());
+  auto thetaNode = ThetaNode::create(rvsdg.root());
 
   auto thetaOutput0 = thetaNode->add_loopvar(ctl);
   auto thetaOutput1 = thetaNode->add_loopvar(x);

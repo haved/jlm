@@ -14,7 +14,7 @@ namespace jlm::hls
 static void
 ConvertGammaNodeWithoutSpeculation(rvsdg::GammaNode & gammaNode)
 {
-  rvsdg::substitution_map substitutionMap;
+  rvsdg::SubstitutionMap substitutionMap;
 
   // create a branch for each gamma input and map the corresponding argument of each subregion to an
   // output of the branch
@@ -55,7 +55,7 @@ ConvertGammaNodeWithoutSpeculation(rvsdg::GammaNode & gammaNode)
 static void
 ConvertGammaNodeWithSpeculation(rvsdg::GammaNode & gammaNode)
 {
-  rvsdg::substitution_map substitutionMap;
+  rvsdg::SubstitutionMap substitutionMap;
 
   // Map arguments to origins of inputs. Forks will automatically be created later
   for (size_t i = 0; i < gammaNode.nentryvars(); i++)
@@ -107,7 +107,7 @@ CanGammaNodeBeSpeculative(const rvsdg::GammaNode & gammaNode)
   {
     for (auto & node : gammaNode.subregion(i)->nodes)
     {
-      if (rvsdg::is<rvsdg::theta_op>(&node) || rvsdg::is<hls::loop_op>(&node))
+      if (rvsdg::is<rvsdg::ThetaOperation>(&node) || rvsdg::is<hls::loop_op>(&node))
       {
         // don't allow thetas or loops since they could potentially block forever
         return false;
@@ -131,7 +131,7 @@ CanGammaNodeBeSpeculative(const rvsdg::GammaNode & gammaNode)
 }
 
 static void
-ConvertGammaNodesInRegion(rvsdg::region & region);
+ConvertGammaNodesInRegion(rvsdg::Region & region);
 
 static void
 ConvertGammaNodesInStructuralNode(rvsdg::structural_node & structuralNode)
@@ -155,7 +155,7 @@ ConvertGammaNodesInStructuralNode(rvsdg::structural_node & structuralNode)
 }
 
 static void
-ConvertGammaNodesInRegion(rvsdg::region & region)
+ConvertGammaNodesInRegion(rvsdg::Region & region)
 {
   for (auto & node : rvsdg::topdown_traverser(&region))
   {

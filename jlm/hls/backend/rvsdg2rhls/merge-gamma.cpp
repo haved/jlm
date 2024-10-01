@@ -119,8 +119,8 @@ fix_match_inversion(rvsdg::GammaNode * old_gamma)
             op,
             { no->node()->input(0)->origin() })[0];
         auto new_gamma = rvsdg::GammaNode::create(new_match, match->nalternatives());
-        rvsdg::substitution_map rmap0; // subregion 0 of the new gamma - 1 of the old
-        rvsdg::substitution_map rmap1;
+        rvsdg::SubstitutionMap rmap0; // subregion 0 of the new gamma - 1 of the old
+        rvsdg::SubstitutionMap rmap1;
         for (auto oev = old_gamma->begin_entryvar(); oev != old_gamma->end_entryvar(); oev++)
         {
           auto nev = new_gamma->add_entryvar(oev->origin());
@@ -153,7 +153,7 @@ eliminate_gamma_eol(rvsdg::GammaNode * gamma)
 {
   // eliminates gammas that are only active at the end of the loop and have unused outputs
   // seems to be mostly loop variables
-  auto theta = dynamic_cast<rvsdg::theta_node *>(gamma->region()->node());
+  auto theta = dynamic_cast<rvsdg::ThetaNode *>(gamma->region()->node());
   if (!theta || theta->predicate()->origin() != gamma->predicate()->origin())
   {
     return false;
@@ -193,7 +193,7 @@ eliminate_gamma_eol(rvsdg::GammaNode * gamma)
 }
 
 void
-merge_gamma(jlm::rvsdg::region * region)
+merge_gamma(rvsdg::Region * region)
 {
   bool changed = true;
   while (changed)
@@ -292,7 +292,7 @@ merge_gamma(rvsdg::GammaNode * gamma)
       }
       if (can_merge)
       {
-        std::vector<jlm::rvsdg::substitution_map> rmap(gamma->nsubregions());
+        std::vector<rvsdg::SubstitutionMap> rmap(gamma->nsubregions());
         // populate argument mappings
         for (size_t i = 0; i < gamma->nentryvars(); ++i)
         {

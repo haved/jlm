@@ -16,7 +16,7 @@ namespace jlm::rvsdg
 
 GraphImport::GraphImport(
     rvsdg::graph & graph,
-    std::shared_ptr<const rvsdg::type> type,
+    std::shared_ptr<const rvsdg::Type> type,
     std::string name)
     : RegionArgument(graph.root(), nullptr, std::move(type)),
       Name_(std::move(name))
@@ -36,13 +36,13 @@ graph::~graph()
 
 graph::graph()
     : normalized_(false),
-      root_(new jlm::rvsdg::region(nullptr, this))
+      root_(new rvsdg::Region(nullptr, this))
 {}
 
 std::unique_ptr<jlm::rvsdg::graph>
 graph::copy() const
 {
-  jlm::rvsdg::substitution_map smap;
+  SubstitutionMap smap;
   std::unique_ptr<jlm::rvsdg::graph> graph(new jlm::rvsdg::graph());
   root()->copy(graph->root(), smap, true, true);
   return graph;

@@ -60,7 +60,7 @@ is_eqcmp(const jlm::rvsdg::operation & op)
 static bool
 is_theta_invariant(const jlm::rvsdg::output * output)
 {
-  JLM_ASSERT(jlm::rvsdg::is<jlm::rvsdg::theta_op>(output->region()->node()));
+  JLM_ASSERT(is<rvsdg::ThetaOperation>(output->region()->node()));
 
   if (jlm::rvsdg::is<jlm::rvsdg::bitconstant_op>(jlm::rvsdg::node_output::node(output)))
     return true;
@@ -69,7 +69,7 @@ is_theta_invariant(const jlm::rvsdg::output * output)
   if (!argument)
     return false;
 
-  return is_invariant(static_cast<const jlm::rvsdg::theta_input *>(argument->input()));
+  return is_invariant(static_cast<const rvsdg::ThetaInput *>(argument->input()));
 }
 
 static rvsdg::RegionArgument *
@@ -81,8 +81,8 @@ push_from_theta(jlm::rvsdg::output * output)
 
   auto tmp = jlm::rvsdg::node_output::node(output);
   JLM_ASSERT(jlm::rvsdg::is<jlm::rvsdg::bitconstant_op>(tmp));
-  JLM_ASSERT(jlm::rvsdg::is<jlm::rvsdg::theta_op>(tmp->region()->node()));
-  auto theta = static_cast<jlm::rvsdg::theta_node *>(tmp->region()->node());
+  JLM_ASSERT(is<rvsdg::ThetaOperation>(tmp->region()->node()));
+  auto theta = static_cast<rvsdg::ThetaNode *>(tmp->region()->node());
 
   auto node = tmp->copy(theta->region(), {});
   auto lv = theta->add_loopvar(node->output(0));
@@ -103,7 +103,7 @@ is_idv(jlm::rvsdg::input * input)
   if (!a)
     return false;
 
-  auto tinput = static_cast<const theta_input *>(a->input());
+  auto tinput = static_cast<const ThetaInput *>(a->input());
   return jlm::rvsdg::node_output::node(tinput->result()->origin()) == node;
 }
 
@@ -131,7 +131,7 @@ unrollinfo::niterations() const noexcept
 }
 
 std::unique_ptr<unrollinfo>
-unrollinfo::create(jlm::rvsdg::theta_node * theta)
+unrollinfo::create(rvsdg::ThetaNode * theta)
 {
   using namespace jlm::rvsdg;
 
@@ -175,15 +175,15 @@ unrollinfo::create(jlm::rvsdg::theta_node * theta)
 
 static void
 unroll_body(
-    const jlm::rvsdg::theta_node * theta,
-    jlm::rvsdg::region * target,
-    jlm::rvsdg::substitution_map & smap,
+    const rvsdg::ThetaNode * theta,
+    rvsdg::Region * target,
+    rvsdg::SubstitutionMap & smap,
     size_t factor)
 {
   for (size_t n = 0; n < factor - 1; n++)
   {
     theta->subregion()->copy(target, smap, false, false);
-    jlm::rvsdg::substitution_map tmap;
+    rvsdg::SubstitutionMap tmap;
     for (const auto & olv : *theta)
       tmap.insert(olv->argument(), smap.lookup(olv->result()->origin()));
     smap = tmap;
@@ -197,9 +197,9 @@ unroll_body(
   The theta itself is not deleted.
 */
 static void
-copy_body_and_unroll(const jlm::rvsdg::theta_node * theta, size_t factor)
+copy_body_and_unroll(const rvsdg::ThetaNode * theta, size_t factor)
 {
-  jlm::rvsdg::substitution_map smap;
+  rvsdg::SubstitutionMap smap;
   for (const auto & olv : *theta)
     smap.insert(olv->argument(), olv->input()->origin());
 
@@ -213,11 +213,11 @@ copy_body_and_unroll(const jlm::rvsdg::theta_node * theta, size_t factor)
   Unroll theta node by given factor.
 */
 static void
-unroll_theta(const unrollinfo & ui, jlm::rvsdg::substitution_map & smap, size_t factor)
+unroll_theta(const unrollinfo & ui, rvsdg::SubstitutionMap & smap, size_t factor)
 {
   auto theta = ui.theta();
   auto remainder = ui.remainder(factor);
-  auto unrolled_theta = jlm::rvsdg::theta_node::create(theta->region());
+  auto unrolled_theta = rvsdg::ThetaNode::create(theta->region());
 
   for (const auto & olv : *theta)
   {
@@ -259,7 +259,7 @@ unroll_theta(const unrollinfo & ui, jlm::rvsdg::substitution_map & smap, size_t 
   Adde the reminder for the lopp if any
 */
 static void
-add_remainder(const unrollinfo & ui, jlm::rvsdg::substitution_map & smap, size_t factor)
+add_remainder(const unrollinfo & ui, rvsdg::SubstitutionMap & smap, size_t factor)
 {
   auto theta = ui.theta();
   auto remainder = ui.remainder(factor);
@@ -318,7 +318,7 @@ unroll_known_theta(const unrollinfo & ui, size_t factor)
   /*
     Unroll the theta
   */
-  jlm::rvsdg::substitution_map smap;
+  rvsdg::SubstitutionMap smap;
   unroll_theta(ui, smap, factor);
 
   /*
@@ -348,8 +348,8 @@ create_unrolled_gamma_predicate(const unrollinfo & ui, size_t factor)
 
 static jlm::rvsdg::output *
 create_unrolled_theta_predicate(
-    jlm::rvsdg::region * target,
-    const jlm::rvsdg::substitution_map & smap,
+    rvsdg::Region * target,
+    const rvsdg::SubstitutionMap & smap,
     const unrollinfo & ui,
     size_t factor)
 {
@@ -377,7 +377,7 @@ create_unrolled_theta_predicate(
 }
 
 static jlm::rvsdg::output *
-create_residual_gamma_predicate(const jlm::rvsdg::substitution_map & smap, const unrollinfo & ui)
+create_residual_gamma_predicate(const rvsdg::SubstitutionMap & smap, const unrollinfo & ui)
 {
   auto region = ui.theta()->region();
   auto idv = smap.lookup(ui.theta()->output(ui.idv()->input()->index()));
@@ -396,13 +396,13 @@ unroll_unknown_theta(const unrollinfo & ui, size_t factor)
   auto otheta = ui.theta();
 
   /* handle gamma with unrolled loop */
-  jlm::rvsdg::substitution_map smap;
+  rvsdg::SubstitutionMap smap;
   {
     auto pred = create_unrolled_gamma_predicate(ui, factor);
     auto ngamma = rvsdg::GammaNode::create(pred, 2);
-    auto ntheta = jlm::rvsdg::theta_node::create(ngamma->subregion(1));
+    auto ntheta = rvsdg::ThetaNode::create(ngamma->subregion(1));
 
-    jlm::rvsdg::substitution_map rmap[2];
+    rvsdg::SubstitutionMap rmap[2];
     for (const auto & olv : *otheta)
     {
       auto ev = ngamma->add_entryvar(olv->input()->origin());
@@ -433,9 +433,9 @@ unroll_unknown_theta(const unrollinfo & ui, size_t factor)
   {
     auto pred = create_residual_gamma_predicate(smap, ui);
     auto ngamma = rvsdg::GammaNode::create(pred, 2);
-    auto ntheta = jlm::rvsdg::theta_node::create(ngamma->subregion(1));
+    auto ntheta = rvsdg::ThetaNode::create(ngamma->subregion(1));
 
-    jlm::rvsdg::substitution_map rmap[2];
+    rvsdg::SubstitutionMap rmap[2];
     for (const auto & olv : *otheta)
     {
       auto ev = ngamma->add_entryvar(smap.lookup(olv));
@@ -461,7 +461,7 @@ unroll_unknown_theta(const unrollinfo & ui, size_t factor)
 }
 
 void
-unroll(jlm::rvsdg::theta_node * otheta, size_t factor)
+unroll(rvsdg::ThetaNode * otheta, size_t factor)
 {
   if (factor < 2)
     return;
@@ -482,7 +482,7 @@ unroll(jlm::rvsdg::theta_node * otheta, size_t factor)
 }
 
 static bool
-unroll(jlm::rvsdg::region * region, size_t factor)
+unroll(rvsdg::Region * region, size_t factor)
 {
   bool unrolled = false;
   for (auto & node : jlm::rvsdg::topdown_traverser(region))
@@ -495,7 +495,7 @@ unroll(jlm::rvsdg::region * region, size_t factor)
       /* Try to unroll if an inner loop hasn't already been found */
       if (!unrolled)
       {
-        if (auto theta = dynamic_cast<jlm::rvsdg::theta_node *>(node))
+        if (auto theta = dynamic_cast<rvsdg::ThetaNode *>(node))
         {
           unroll(theta, factor);
           unrolled = true;

@@ -142,7 +142,7 @@ DeadNodeElimination::~DeadNodeElimination() noexcept = default;
 DeadNodeElimination::DeadNodeElimination() = default;
 
 void
-DeadNodeElimination::run(jlm::rvsdg::region & region)
+DeadNodeElimination::run(rvsdg::Region & region)
 {
   Context_ = Context::Create();
 
@@ -175,7 +175,7 @@ DeadNodeElimination::run(RvsdgModule & module, jlm::util::StatisticsCollector & 
 }
 
 void
-DeadNodeElimination::MarkRegion(const jlm::rvsdg::region & region)
+DeadNodeElimination::MarkRegion(const rvsdg::Region & region)
 {
   for (size_t n = 0; n < region.nresults(); n++)
   {
@@ -214,7 +214,7 @@ DeadNodeElimination::MarkOutput(const jlm::rvsdg::output & output)
     return;
   }
 
-  if (auto thetaOutput = dynamic_cast<const rvsdg::theta_output *>(&output))
+  if (auto thetaOutput = dynamic_cast<const rvsdg::ThetaOutput *>(&output))
   {
     MarkOutput(*thetaOutput->node()->predicate()->origin());
     MarkOutput(*thetaOutput->result()->origin());
@@ -224,7 +224,7 @@ DeadNodeElimination::MarkOutput(const jlm::rvsdg::output & output)
 
   if (auto thetaArgument = dynamic_cast<const rvsdg::ThetaArgument *>(&output))
   {
-    auto thetaInput = util::AssertedCast<const jlm::rvsdg::theta_input>(thetaArgument->input());
+    auto thetaInput = util::AssertedCast<const rvsdg::ThetaInput>(thetaArgument->input());
     MarkOutput(*thetaInput->output());
     MarkOutput(*thetaInput->origin());
     return;
@@ -309,7 +309,7 @@ DeadNodeElimination::SweepRvsdg(jlm::rvsdg::graph & rvsdg) const
 }
 
 void
-DeadNodeElimination::SweepRegion(jlm::rvsdg::region & region) const
+DeadNodeElimination::SweepRegion(rvsdg::Region & region) const
 {
   region.prune(false);
 
@@ -348,7 +348,7 @@ DeadNodeElimination::SweepStructuralNode(jlm::rvsdg::structural_node & node) con
   };
   auto sweepTheta = [](auto & d, auto & n)
   {
-    d.SweepTheta(*util::AssertedCast<jlm::rvsdg::theta_node>(&n));
+    d.SweepTheta(*util::AssertedCast<rvsdg::ThetaNode>(&n));
   };
   auto sweepLambda = [](auto & d, auto & n)
   {
@@ -367,7 +367,7 @@ DeadNodeElimination::SweepStructuralNode(jlm::rvsdg::structural_node & node) con
       std::type_index,
       std::function<void(const DeadNodeElimination &, jlm::rvsdg::structural_node &)>>
       map({ { typeid(rvsdg::GammaOperation), sweepGamma },
-            { typeid(jlm::rvsdg::theta_op), sweepTheta },
+            { typeid(rvsdg::ThetaOperation), sweepTheta },
             { typeid(lambda::operation), sweepLambda },
             { typeid(phi::operation), sweepPhi },
             { typeid(delta::operation), sweepDelta } });
@@ -427,11 +427,11 @@ DeadNodeElimination::SweepGamma(rvsdg::GammaNode & gammaNode) const
 }
 
 void
-DeadNodeElimination::SweepTheta(jlm::rvsdg::theta_node & thetaNode) const
+DeadNodeElimination::SweepTheta(rvsdg::ThetaNode & thetaNode) const
 {
   auto & thetaSubregion = *thetaNode.subregion();
 
-  auto matchOutput = [&](const rvsdg::theta_output & output)
+  auto matchOutput = [&](const rvsdg::ThetaOutput & output)
   {
     auto & argument = *output.argument();
     return !Context_->IsAlive(argument) && !Context_->IsAlive(output);
@@ -440,7 +440,7 @@ DeadNodeElimination::SweepTheta(jlm::rvsdg::theta_node & thetaNode) const
 
   SweepRegion(thetaSubregion);
 
-  auto matchInput = [&](const rvsdg::theta_input & input)
+  auto matchInput = [&](const rvsdg::ThetaInput & input)
   {
     return deadInputs.Contains(&input);
   };
