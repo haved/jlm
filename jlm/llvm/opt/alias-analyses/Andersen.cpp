@@ -66,84 +66,33 @@ std::vector<Andersen::Configuration>
 Andersen::Configuration::GetAllConfigurations()
 {
   std::vector<Configuration> configs;
-  auto PickPreferImplicitPointees = [&](Configuration config)
-  {
-    config.EnablePreferImplicitPointees(false);
-    configs.push_back(config);
-    config.EnablePreferImplicitPointees(true);
-    configs.push_back(config);
-  };
-  auto PickDifferencePropagation = [&](Configuration config)
-  {
-    config.EnableDifferencePropagation(false);
-    PickPreferImplicitPointees(config);
-    config.EnableDifferencePropagation(true);
-    PickPreferImplicitPointees(config);
-  };
-  auto PickLazyCycleDetection = [&](Configuration config)
-  {
-    config.EnableLazyCycleDetection(false);
-    PickDifferencePropagation(config);
-    config.EnableLazyCycleDetection(true);
-    PickDifferencePropagation(config);
-  };
-  auto PickHybridCycleDetection = [&](Configuration config)
-  {
-    config.EnableHybridCycleDetection(false);
-    PickLazyCycleDetection(config);
-    // Hybrid Cycle Detection can only be enabled when OVS is enabled
-    if (config.IsOfflineVariableSubstitutionEnabled())
-    {
-      config.EnableHybridCycleDetection(true);
-      PickLazyCycleDetection(config);
-    }
-  };
-  auto PickOnlineCycleDetection = [&](Configuration config)
-  {
-    config.EnableOnlineCycleDetection(false);
-    PickHybridCycleDetection(config);
-    config.EnableOnlineCycleDetection(true);
-    // OnlineCD can not be combined with HybridCD or LazyCD
-    PickDifferencePropagation(config);
-  };
-  auto PickWorklistPolicy = [&](Configuration config)
-  {
-    using Policy = PointerObjectConstraintSet::WorklistSolverPolicy;
-    config.SetWorklistSolverPolicy(Policy::LeastRecentlyFired);
-    PickOnlineCycleDetection(config);
-    config.SetWorklistSolverPolicy(Policy::TwoPhaseLeastRecentlyFired);
-    PickOnlineCycleDetection(config);
-    config.SetWorklistSolverPolicy(Policy::LastInFirstOut);
-    PickOnlineCycleDetection(config);
-    config.SetWorklistSolverPolicy(Policy::FirstInFirstOut);
-    PickOnlineCycleDetection(config);
-    config.SetWorklistSolverPolicy(Policy::TopologicalSort);
-    PickDifferencePropagation(config); // With topo, skip all cycle detection
-  };
-  auto PickOfflineNormalization = [&](Configuration config)
-  {
-    config.EnableOfflineConstraintNormalization(false);
-    configs.push_back(config);
-    config.EnableOfflineConstraintNormalization(true);
-    configs.push_back(config);
-  };
-  auto PickSolver = [&](Configuration config)
-  {
-    config.SetSolver(Solver::Worklist);
-    PickWorklistPolicy(config);
-    config.SetSolver(Solver::Naive);
-    PickOfflineNormalization(config);
-  };
-  auto PickOfflineVariableSubstitution = [&](Configuration config)
-  {
-    config.EnableOfflineVariableSubstitution(false);
-    PickSolver(config);
-    config.EnableOfflineVariableSubstitution(true);
-    PickSolver(config);
-  };
 
-  // Adds one configuration for all valid combinations of features
-  PickOfflineVariableSubstitution(NaiveSolverConfiguration());
+  auto config = NaiveSolverConfiguration();
+
+  // WL(FIFO)+PIP
+  config.SetSolver(Solver::Worklist);
+  config.SetWorklistSolverPolicy(PointerObjectConstraintSet::WorklistSolverPolicy::FirstInFirstOut);
+  config.EnablePreferImplicitPointees(true);
+  configs.push_back(config);
+
+  // WL(LRF)+LCD+DP
+  config.SetWorklistSolverPolicy(PointerObjectConstraintSet::WorklistSolverPolicy::LeastRecentlyFired);
+  config.EnablePreferImplicitPointees(false);
+  config.EnableLazyCycleDetection(true);
+  config.EnableDifferencePropagation(true);
+  configs.push_back(config);
+
+  // OVS+WL(LRF)+LCD+DP
+  config.EnableOfflineVariableSubstitution(true);
+  configs.push_back(config);
+
+  // OVS+WL(2LRF)+LCD+DP
+  config.SetWorklistSolverPolicy(PointerObjectConstraintSet::WorklistSolverPolicy::TwoPhaseLeastRecentlyFired);
+  configs.push_back(config);
+
+  // WL(2LRF)+LCD+DP
+  config.EnableOfflineVariableSubstitution(false);
+  configs.push_back(config);
 
   return configs;
 }
@@ -1353,7 +1302,8 @@ Andersen::Analyze(const RvsdgModule & module, util::StatisticsCollector & statis
     writer.OutputAllGraphs(std::cout, util::GraphOutputFormat::Dot);
   }
 
-  auto result = ConstructPointsToGraphFromPointerObjectSet(*Set_, *statistics);
+  auto result = PointsToGraph::Create();
+  // auto result = ConstructPointsToGraphFromPointerObjectSet(*Set_, *statistics);
 
   statistics->StopAndersenStatistics();
   statisticsCollector.CollectDemandedStatistics(std::move(statistics));
