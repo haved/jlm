@@ -34,7 +34,7 @@ public:
   {
     FirstEnumValue, // must always be the first enum value, used for iteration
 
-    AliasAnalysisClientPrecision,
+    AliasAnalysisPrecisionEvaluation,
     Aggregation,
     AgnosticMemoryNodeProvisioning,
     AndersenAnalysis,
