@@ -153,6 +153,13 @@ private:
   void
   CollectPointersFromStructuralNode(const rvsdg::StructuralNode & node);
 
+  // Determines if the given value is regarded as representing a pointer
+  bool
+  IsPointerCompatible(const rvsdg::output * value);
+
+  // Adds a value to the list of pointer uses and/or clobbers in the function being evaluated currently
+  void CollectPointer(const rvsdg::output * value, bool isUse, bool isClobber);
+
   // Called once all functions have been evaluated, to calculate and print averages
   void
   PrecisionEvaluator::CalculateAverageMayAliasRate(

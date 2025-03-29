@@ -215,12 +215,16 @@ PrecisionEvaluator::EvaluateFunction(
 void
 PrecisionEvaluator::CollectPointersFromFunctionArguments(const rvsdg::LambdaNode & function)
 {
-  // Function arguments are only counted as a pointer "use" if we look at all pointer pairs
+  // In this mode, only loads and stores constitute uses and clobbers, so ignore function arguments
   if (Mode_ == PrecisionEvaluationMode::ClobberingStores)
     return;
 
   JLM_ASSERT(Mode_ == PrecisionEvaluationMode::AllPointerPairs);
-  for (function.GetFunctionArguments())
+  for (const auto arg : function.GetFunctionArguments())
+  {
+    if (IsPointerCompatible(arg))
+      CollectPointer(arg, true, true);
+  }
 }
 
 void
@@ -245,11 +249,75 @@ PrecisionEvaluator::CollectPointersFromRegion(const rvsdg::Region & region)
 
 void
 PrecisionEvaluator::CollectPointersFromSimpleNode(const rvsdg::SimpleNode & node)
-{}
+{
+  if (Mode_ == PrecisionEvaluationMode::ClobberingStores)
+  {
+    // In this mode, only (volatile) load and store operations count as uses and clobbers
+    if (auto load = dynamic_cast<const LoadNode*>(&node))
+    {
+      CollectPointer(load->GetAddressInput().origin(), true, false);
+    }
+    else if (auto store = dynamic_cast<const StoreNode*>(&node))
+    {
+      CollectPointer(store->GetAddressInput().origin(), true, true);
+    }
+  }
+  else if (Mode_ == PrecisionEvaluationMode::AllPointerPairs)
+  {
+    // In this mode, all pointer compatible outputs are regarded as both uses and clobbers
+    for (size_t n = 0; n < node.noutputs(); n++)
+    {
+      if (const auto output = node.output(n); IsPointerCompatible(output))
+        CollectPointer(output, true, true);
+    }
+  }
+  else
+  {
+    JLM_UNREACHABLE("Unknown precision evaluation mode");
+  }
+}
 
 void
 PrecisionEvaluator::CollectPointersFromStructuralNode(const rvsdg::StructuralNode & node)
-{}
+{
+  for (size_t n = 0; n < node.nsubregions(); n++)
+  {
+    CollectPointersFromRegion(*node.subregion(n));
+  }
+
+  if (Mode_ == PrecisionEvaluationMode::AllPointerPairs)
+  {
+    // In this mode, pointer compatible outputs from structural nodes represent new pointers.
+    // This is to mimic LLVM phi nodes more closely
+    // If the output has no users, such as a theta loop variable only used in the loop, it is skipped
+    for (size_t n = 0; n < node.noutputs(); n++)
+    {
+      const auto output = node.output(n);
+      if (IsPointerCompatible(output) && output->nusers() > 0)
+        CollectPointer(output, true, true);
+    }
+  }
+}
+
+bool
+PrecisionEvaluator::IsPointerCompatible(const rvsdg::output * value)
+{
+  // We omit including function types as pointers, as we otherwise risk including a bunch of trivial direct calls.
+  const auto & type = value->type();
+  return IsOrContains<PointerType>(type);
+}
+
+void
+PrecisionEvaluator::CollectPointer(const rvsdg::output * value, bool isUse, bool isClobber)
+{
+  JLM_ASSERT(IsPointerCompatible(value));
+
+  if (isUse)
+    Context_.PointerUses.push_back({value, isClobber});
+
+  if (isClobber)
+    Context_.PointerClobbers.push_back(value);
+}
 
 void
 PrecisionEvaluator::CalculateAverageMayAliasRate(

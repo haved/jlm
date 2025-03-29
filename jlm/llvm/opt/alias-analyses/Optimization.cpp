@@ -30,8 +30,14 @@ AliasAnalysisStateEncoder<AliasAnalysisPass, MemoryNodeProviderPass>::Run(
   AliasAnalysisPass aaPass;
   auto pointsToGraph = aaPass.Analyze(rvsdgModule, statisticsCollector);
 
-  PrecisionEvaluator pe;
-  pe.EvaluateAliasAnalysisClient(rvsdgModule, *pointsToGraph, statisticsCollector);
+  // Evaluate alias analysis precision if the statistic is demanded
+  PrecisionEvaluator precisionEvaluator(PrecisionEvaluationMode::AllPointerPairs);
+  PointsToGraphAliasAnalysis ptgAA(pointsToGraph);
+  precisionEvaluator.EvaluateAliasAnalysisClient(rvsdgModule, ptgAA, statisticsCollector);
+
+  // Evaluate precision again with a different mode
+  precisionEvaluator.SetMode(PrecisionEvaluationMode::ClobberingStores);
+  precisionEvaluator.EvaluateAliasAnalysisClient(rvsdgModule, ptgAA, statisticsCollector);
 
   auto provisioning =
       MemoryNodeProviderPass::Create(rvsdgModule, *pointsToGraph, statisticsCollector);
