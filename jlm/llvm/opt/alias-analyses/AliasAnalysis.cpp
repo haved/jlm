@@ -18,7 +18,10 @@
 #include <numeric>
 #include <queue>
 
+#include <llvm/Analysis/BasicAliasAnalysis.h>
 #include <llvm/Analysis/GlobalsModRef.h>
+#include <llvm/Analysis/ScopedNoAliasAA.h>
+#include <llvm/Analysis/TypeBasedAliasAnalysis.h>
 
 namespace jlm::llvm::aa
 {
@@ -169,32 +172,42 @@ PointsToGraphAliasAnalysis::IsRepresentingSingleMemoryLocation(
       || PointsToGraph::Node::Is<PointsToGraph::LambdaNode>(node);
 }
 
-LlvmAliasAnalysis::LlvmAliasAnalysis()
+LlvmAliasAnalysis::LlvmAliasAnalysis(bool useGlobalsAA, bool useTypeBasedAA)
+    : UseGlobalsAA_(useGlobalsAA),
+      UseTypeBasedAA_(useTypeBasedAA)
 {
+
+  // We must provide our own AAManager before the PassBuilder
+  FAM_.registerPass(
+      [=]
+      {
+        ::llvm::AAManager AA;
+        AA.registerFunctionAnalysis<::llvm::BasicAA>();
+        AA.registerFunctionAnalysis<::llvm::ScopedNoAliasAA>();
+
+        if (useTypeBasedAA)
+          AA.registerFunctionAnalysis<::llvm::TypeBasedAA>();
+        if (useGlobalsAA)
+          AA.registerModuleAnalysis<::llvm::GlobalsAA>();
+
+        return AA;
+      });
+
   PB_.registerModuleAnalyses(MAM_);
   PB_.registerFunctionAnalyses(FAM_);
   PB_.registerCGSCCAnalyses(CGAM_);
   PB_.registerLoopAnalyses(LAM_);
 
-  // The GlobalsAA pass is not included by the default PassBuilder
-  MAM_.registerPass(
-      []
-      {
-        return ::llvm::GlobalsAA();
-      });
-
-  /*
-  The PassBuilder has already created the a AAManager containing all default AA passes
-  FAM_.registerPass(
-      [&]
-      {
-        ::llvm::AAManager AA;
-        AA.registerFunctionAnalysis<::llvm::BasicAA>();
-        AA.registerFunctionAnalysis<::llvm::ScopedNoAliasAA>();
-        AA.registerModuleAnalysis<::llvm::GlobalsAA>();
-        return AA;
-      });
-  */
+  if (useGlobalsAA)
+  {
+    // The GlobalsAA pass is not triggered by the AAManager, which is a function analysis.
+    // It is only used if its results are already cached from module analysis.
+    MAM_.registerPass(
+        []
+        {
+          return ::llvm::GlobalsAA();
+        });
+  }
 
   PB_.crossRegisterProxies(LAM_, FAM_, CGAM_, MAM_);
 }
@@ -211,7 +224,10 @@ LlvmAliasAnalysis::~LlvmAliasAnalysis()
 std::string
 LlvmAliasAnalysis::ToString() const
 {
-  return "LlvmAA";
+  return util::strfmt(
+      "LlvmAA",
+      UseGlobalsAA_ ? "+GlobalsAA" : "",
+      UseTypeBasedAA_ ? "+TypeBasedAA" : "");
 }
 
 AliasAnalysis::AliasQueryResponse

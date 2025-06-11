@@ -3,6 +3,7 @@
  * See COPYING for terms of redistribution.
  */
 
+#include <jlm/llvm/backend/dot/DotWriter.hpp>
 #include <jlm/llvm/ir/operators/IOBarrier.hpp>
 #include <jlm/llvm/opt/alias-analyses/Andersen.hpp>
 #include <jlm/llvm/opt/alias-analyses/PointsToGraph.hpp>
@@ -1510,7 +1511,11 @@ Andersen::Analyze(
 
   // Draw subset graph both before and after solving
   if (dumpGraphs)
+  {
+    // Include the IR graph as well
+    dot::WriteGraphs(writer, module.Rvsdg().GetRootRegion(), true);
     Constraints_->DrawSubsetGraph(writer);
+  }
 
   SolveConstraints(*Constraints_, Config_, *statistics);
   statistics->AddStatisticsFromSolution(*Set_);
@@ -1519,6 +1524,7 @@ Andersen::Analyze(
   {
     auto & graph = Constraints_->DrawSubsetGraph(writer);
     graph.AppendToLabel("After Solving with " + Config_.ToString());
+    writer.OutputAllGraphs(std::cout, util::GraphOutputFormat::Dot);
   }
 
   auto result = ConstructPointsToGraphFromPointerObjectSet(*Set_, *statistics);
@@ -1573,13 +1579,6 @@ Andersen::Analyze(
         {
           if (workingCopy.first->HasIdenticalSolAs(*Set_))
             continue;
-
-          if (dumpGraphs)
-          {
-            auto & graph = workingCopy.second->DrawSubsetGraph(writer);
-            graph.AppendToLabel("After Solving with " + config.ToString());
-            writer.OutputAllGraphs(std::cout, util::GraphOutputFormat::Dot);
-          }
 
           std::cerr << "Solving with original config: " << Config_.ToString()
                     << " did not produce the same solution as the config " << config.ToString()

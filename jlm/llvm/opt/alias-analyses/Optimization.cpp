@@ -34,13 +34,19 @@ PointsToAnalysisStateEncoder<TPointsToAnalysis, TModRefSummarizer>::Run(
   PrecisionEvaluator precisionEvaluator;
   PointsToGraphAliasAnalysis ptgAA(*pointsToGraph);
   BasicAliasAnalysis basicAA;
-  LlvmAliasAnalysis llvmAA;
-  ChainedAliasAnalysis ptgPlusLlvmAA(ptgAA, llvmAA);
 
   precisionEvaluator.EvaluateAliasAnalysisClient(rvsdgModule, basicAA, statisticsCollector);
-  precisionEvaluator.EvaluateAliasAnalysisClient(rvsdgModule, llvmAA, statisticsCollector);
   precisionEvaluator.EvaluateAliasAnalysisClient(rvsdgModule, ptgAA, statisticsCollector);
-  precisionEvaluator.EvaluateAliasAnalysisClient(rvsdgModule, ptgPlusLlvmAA, statisticsCollector);
+
+  // Use a for loop to try all versions of enabling and disabling GlobalsAA and TypeBasedAA
+  for (int i = 1; i < 2; i++)
+  {
+    LlvmAliasAnalysis llvmAA(i & 1, i & 2);
+    ChainedAliasAnalysis ptgPlusLlvmAA(ptgAA, llvmAA);
+
+    precisionEvaluator.EvaluateAliasAnalysisClient(rvsdgModule, llvmAA, statisticsCollector);
+    precisionEvaluator.EvaluateAliasAnalysisClient(rvsdgModule, ptgPlusLlvmAA, statisticsCollector);
+  }
 
   /*
   TODO: Add encoding back in

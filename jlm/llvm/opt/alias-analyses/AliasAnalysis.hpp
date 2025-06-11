@@ -124,7 +124,7 @@ private:
 class LlvmAliasAnalysis final : public AliasAnalysis
 {
 public:
-  LlvmAliasAnalysis();
+  LlvmAliasAnalysis(bool useGlobalsAA, bool useTypeBasedAA);
 
   ~LlvmAliasAnalysis() override;
 
@@ -141,6 +141,9 @@ public:
       size_t s2) override;
 
 private:
+  bool UseGlobalsAA_;
+  bool UseTypeBasedAA_;
+
   ::llvm::ModuleAnalysisManager MAM_;
   ::llvm::CGSCCAnalysisManager CGAM_;
   ::llvm::FunctionAnalysisManager FAM_;
